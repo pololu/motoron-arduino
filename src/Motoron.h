@@ -1,37 +1,84 @@
+// Copyright (C) Pololu Corporation.  See LICENSE.txt for details.
+
+/// \file Motoron.h
+///
+/// This is the main header file for the Motoron Motor Controller library
+/// for Arduino.
+///
+/// For more information about the library, see the main repository at:
+/// https://github.com/pololu/motoron-arduino
+
+/// \file motoron_protocol.h
+///
+/// This file defines the arbitrary constants needed to communicate with a
+/// Motoron.
+
 #pragma once
 
 #include <Arduino.h>
 #include <Wire.h>
 #include "motoron_protocol.h"
 
+/// \cond
+
 extern const PROGMEM uint8_t motoronCrcTable[256];
+
+/// \endcond
 
 /// Represents an I2C connection to a Pololu Motoron Motor Controller.
 class MotoronI2C
 {
 public:
+  /// Creates a new MotoronI2C object to communicate with the Motoron over I2C.
+  ///
+  /// The `address` parameter specifies the 7-bit I2C address to use, and it
+  /// must match the address that the Motoron is configured to use.
+  /// The default value is 15, which is the address that the Motoron uses if
+  /// the JMP1 jumper is disconnected.
   MotoronI2C(uint8_t address = 15) : address(address) {}
 
+  /// Configures this object to use the specified I2C bus.
+  /// The default bus is Wire, which is typically the first or only I2C bus on
+  /// an Arduino.  To use Wire1 instead, you can write:
+  /// ```{.cpp}
+  /// mc.setBus(&Wire1);
+  /// ```
+  /// \param bus A pointer to a TwoWire object reoresenting the I2C bus to use.
   void setBus(TwoWire * bus)
   {
     this->bus = bus;
   }
 
-  uint8_t getAddress()
-  {
-    return address;
-  }
-
+  /// Configures this object to use the specified 7-bit I2C address.
+  /// This must match the address that the Motoron is configured to use.
   void setAddress(uint8_t address)
   {
     this->address = address;
   }
 
+  /// Returns the 7-bit I2C address that this object is configured to use.
+  uint8_t getAddress()
+  {
+    return address;
+  }
+
+  /// Returns 0 if the last communication with the device was successful, or
+  /// a non-zero error code if there was an error.
   uint8_t getLastError()
   {
     return lastError;
   }
 
+  /// Sends the "Get firmware version" command to get the device's firmware
+  /// product ID and firmware version numbers.
+  ///
+  /// For more information, see the "Get firwmare version"
+  /// command in the Motoron user's guide.
+  ///
+  /// \param productId An optional pointer used to return the product ID.
+  ///   Can be NULL.
+  /// \param firmwareVersion An optional pointer used to return the firmware
+  ///   version.  Can be NULL.
   void getFirmwareVersion(uint16_t * productId, uint16_t * firmwareVersion)
   {
     uint8_t cmd = MOTORON_CMD_GET_FIRMWARE_VERSION;
@@ -41,6 +88,45 @@ public:
     if (firmwareVersion != nullptr) { *firmwareVersion = response[2] | (response[3] << 8); }
   }
 
+  /// Sends the "Set protocol options" command to the device to specify options
+  /// related to how the device processes commands and sends responses.
+  /// The options are also saved in this object and are used later
+  /// when sending other commands or reading responses.
+  ///
+  /// When CRC for commands is enabled, this library generates the CRC
+  /// byte and appends it to the end of each command it sends.  The Motoron
+  /// checks it to help ensure the command was received correctly.
+  ///
+  /// When CRC for responses is enabled, this library reads the CRC byte sent
+  /// by the Motoron in its repsonses and makes sure it is correct.  If the
+  /// response CRC byte is incorrect, getLastError() will return a non-zero
+  /// error code after the command has been run.
+  ///
+  /// When the I2C general call address is enabled, the Motoron receives
+  /// commands sent to address 0 in addition to its usual I2C address.
+  /// The general call address is write-only; reading bytes from it is not
+  /// supported.
+  ///
+  /// By default (in this libary and the Motoron itself), CRC for commands and
+  /// responses is enabled, and the I2C general call address is enabled.
+  ///
+  /// This method always sends its command with a CRC byte, so it will work
+  /// even if CRC was previously disabled but has been re-enabled on the device
+  /// (e.g. due to a reset).
+  ///
+  /// The \p options argument should be 0 a combination of the following
+  /// expressions made using the bitwise or operator (|):
+  /// - (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS)
+  /// - (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_RESPONSES)
+  /// - (1 << MOTORON_PROTOCOL_OPTION_I2C_GENERAL_CALL)
+  ///
+  /// For more information, see the "Set protocol optons"
+  /// command in the Motoron user's guide.
+  ///
+  /// \sa enableCrc(), disableCrc(),
+  ///   enableCrcForCommands(), disableCrcForCommands(),
+  ///   enableCrcForResponses(), disableCrcForResponses(),
+  ///   enableI2cGeneralCall(), disableI2cGeneralCall()
   void setProtocolOptions(uint8_t options)
   {
     this->protocolOptions = options;
@@ -53,6 +139,7 @@ public:
     if (getLastError()) { return; }
   }
 
+  /// Enables CRC for commands and responses.  See setProtocolOptions().
   void enableCrc()
   {
     setProtocolOptions(protocolOptions
@@ -60,6 +147,7 @@ public:
       | (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_RESPONSES));
   }
 
+  /// Disables CRC for commands and responses.  See setProtocolOptions().
   void disableCrc()
   {
     setProtocolOptions(protocolOptions
@@ -67,42 +155,52 @@ public:
       & ~(1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_RESPONSES));
   }
 
+  /// Enables CRC for commands.  See setProtocolOptions().
   void enableCrcForCommands()
   {
     setProtocolOptions(protocolOptions
       | (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS));
   }
 
+  /// Disables CRC for commands.  See setProtocolOptions().
   void disableCrcForCommands()
   {
     setProtocolOptions(protocolOptions
       & ~(1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS));
   }
 
+  /// Enables CRC for responses.  See setProtocolOptions().
   void enableCrcForResponses()
   {
     setProtocolOptions(protocolOptions
       | (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_RESPONSES));
   }
 
+  /// Disables CRC for responses.  See setProtocolOptions().
   void disableCrcForResponses()
   {
     setProtocolOptions(protocolOptions
       & ~(1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_RESPONSES));
   }
 
+  /// Enables the I2C general call address.  See setProtocolOptions().
   void enableI2cGeneralCall()
   {
     setProtocolOptions(protocolOptions
       | (1 << MOTORON_PROTOCOL_OPTION_I2C_GENERAL_CALL));
   }
 
+  /// Disables the I2C general call address.  See setProtocolOptions().
   void disableI2cGeneralCall()
   {
     setProtocolOptions(protocolOptions
       & ~(1 << MOTORON_PROTOCOL_OPTION_I2C_GENERAL_CALL));
   }
 
+  /// Reads the specified bytes from the Motoron's EEPROM memory.
+  ///
+  /// For more information, see the "Read EEPROM" command in the
+  /// Motoron user's guide.
   void readEeprom(uint8_t offset, uint8_t length, uint8_t * buffer)
   {
     uint8_t cmd[] = {
@@ -113,6 +211,10 @@ public:
     sendCommandAndReadResponse(sizeof(cmd), cmd, length, buffer);
   }
 
+  /// Reads the EEPROM device number from the device.
+  /// This is the I2C address that the device uses if it detects that JMP1
+  /// is shorted to GND when it starts up.  It is stored in non-volatile
+  /// EEPROM memory.
   uint8_t readEepromDeviceNumber()
   {
     uint8_t number;
@@ -120,6 +222,14 @@ public:
     return number;
   }
 
+  /// Writes a value to one byte in the Motoron's EEPROM memory.
+  ///
+  /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
+  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// 100,000 erase/write cycles.**
+  ///
+  /// For more information, see the "Write EEPROM" command in the
+  /// Motoron user's guide.
   void writeEeprom(uint8_t offset, uint8_t value)
   {
     uint8_t cmd[7];
@@ -134,11 +244,24 @@ public:
     delay(6);
   }
 
+  /// Writes to the EEPROM device number, changing it to the specified value.
+  ///
+  /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
+  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// 100,000 erase/write cycles.**
+  ///
+  /// For more information, see the "Write EEPROM" command in the
+  /// Motoron user's guide.  Also, see the WriteEEPROM example that comes with
+  /// this library for an example of how to use this method.
   void writeEepromDeviceNumber(uint8_t number)
   {
     writeEeprom(MOTORON_SETTING_DEVICE_NUMBER, number);
   }
 
+  /// Sends a "Reset" command to the Motoron, which resets most of the Motoron's
+  /// variables to their default state.
+  ///
+  /// For more information, see the "Reset" command in the Motoron user's guide.
   void reset()
   {
     // Always send the reset command with a CRC byte to make it more reliable.
@@ -147,6 +270,18 @@ public:
     protocolOptions = defaultProtocolOptions;
   }
 
+  /// Reads information from the Motoron using a "Get variables" command.
+  ///
+  /// This library has helper methods to read every variable, but this method
+  /// is useful if you want to get the raw bytes, or if you want to read
+  /// multiple consecutive variables at the same time for efficiency.
+  ///
+  /// @param motor 0 to read general variables, or a motor number to read
+  ///   motor-specific variables.
+  /// @param offset The location of the first byte to read.
+  /// @param length How many bytes to read.
+  /// @param buffer A pointer to an array to store the bytes read
+  ///   from the controller.
   void getVariables(uint8_t motor, uint8_t offset, uint8_t length, uint8_t * buffer)
   {
     uint8_t cmd[] = {
@@ -158,6 +293,11 @@ public:
     sendCommandAndReadResponse(sizeof(cmd), cmd, length, buffer);
   }
 
+  /// Reads one byte from the Motoron using a "Get variables" command.
+  ///
+  /// @param motor 0 to read a general variable, or a motor number to read
+  ///   a motor-specific variable.
+  /// @param offset The location of the byte to read.
   uint8_t getVar8(uint8_t motor, uint8_t offset)
   {
     uint8_t result;
@@ -165,6 +305,11 @@ public:
     return result;
   }
 
+  /// Reads two bytes from the Motoron using a "Get variables" command.
+  ///
+  /// @param motor 0 to read general variables, or a motor number to read
+  ///   motor-specific variables.
+  /// @param offset The location of the first byte to read.
   uint16_t getVar16(uint8_t motor, uint8_t offset)
   {
     uint8_t buffer[2];
@@ -172,31 +317,116 @@ public:
     return buffer[0] | ((uint16_t)buffer[1] << 8);
   }
 
+  /// Reads voltage on the Motoron's VIN pin, in raw device units.
+  ///
+  /// For more information, see the "VIN voltage" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \sa getVinVoltageMv()
   uint16_t getVinVoltage()
   {
     return getVar16(0, MOTORON_VAR_VIN_VOLTAGE);
   }
 
+  /// Reads the voltage on the Motoron's VIN pin and converts it to millivolts.
+  ///
+  /// For more information, see the "VIN voltage" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \param referenceMv The reference voltage (IOREF), in millivolts.
+  ///   For example, use 3300 for a 3.3 V system or 5000 for a 5 V system.
+  ///
+  /// \sa getVinVoltage()
   uint32_t getVinVoltageMv(uint16_t referenceMv)
   {
     return (uint32_t)getVinVoltage() * referenceMv / 1024 * 1047 / 47;
   }
 
+  /// Reads the "Status flags" variable from the Motoron.
+  ///
+  /// The bits in this variable are defined by the MOTORON_STATUS_FLAGS_*
+  /// macros:
+  ///
+  /// - MOTORON_STATUS_FLAG_PROTOCOL_ERROR
+  /// - MOTORON_STATUS_FLAG_CRC_ERROR
+  /// - MOTORON_STATUS_FLAG_COMMAND_TIMEOUT_LATCHED
+  /// - MOTORON_STATUS_FLAG_MOTOR_FAULT_LATCHED
+  /// - MOTORON_STATUS_FLAG_NO_POWER_LATCHED
+  /// - MOTORON_STATUS_FLAG_RESET
+  /// - MOTORON_STATUS_FLAG_COMMAND_TIMEOUT
+  /// - MOTORON_STATUS_FLAG_MOTOR_FAULTING
+  /// - MOTORON_STATUS_FLAG_NO_POWER
+  /// - MOTORON_STATUS_FLAG_ERROR_ACTIVE
+  /// - MOTORON_STATUS_FLAG_MOTOR_OUTPUT_ENABLED
+  /// - MOTORON_STATUS_FLAG_MOTOR_DRIVING
+  ///
+  /// Here is some example code that uses C++ bitwise operators to check
+  /// whether there is currently a motor fault or a lack of power:
+  ///
+  /// ```{.cpp}
+  /// uint16_t mask = (1 << MOTORON_STATUS_FLAG_NO_POWER) |
+  ///   (1 << MOTORON_STATUS_FLAG_MOTOR_FAULTING);
+  /// if (getStatusFlags() & mask) {  /* do something */ }
+  /// ```
+  ///
+  /// This library has helper methods that make it easier if you just want to
+  /// read a single bit:
+  ///
+  /// - getProtocolErrorFlag()
+  /// - getCrcErrorFlag()
+  /// - getCommandTimeoutLatchedFlag()
+  /// - getMotorFaultLatchedFlag()
+  /// - getNoPowerLatchedFlag()
+  /// - getResetFlag()
+  /// - getMotorFaultingFlag()
+  /// - getNoPowerFlag()
+  /// - getErrorActiveFlag()
+  /// - getMotorOutputEnabledFlag()
+  /// - getMotorDrivingFlag()
+  ///
+  /// For more information, see the "Status flags" variable in the Motoron
+  /// user's guide.
   uint16_t getStatusFlags()
   {
     return getVar16(0, MOTORON_VAR_STATUS_FLAGS);
   }
 
+  /// Returns the "Protocol error" bit from getStatusFlags().
+  ///
+  /// This flag is set when the Motoron receives an invalid byte in a command
+  /// other than the CRC byte.
+  /// It can be cleared using clearLatchedStatusFlags() or reset().
+  ///
+  /// For more information, see the "Status flags" variable in the Motoron
+  /// user's guide.
   bool getProtocolErrorFlag()
   {
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_PROTOCOL_ERROR);
   }
 
+  /// Returns the "CRC error" bit from getStatusFlags().
+  ///
+  /// This flag is set when the Motoron receives an invalid CRC byte
+  /// in a command.
+  /// It can be cleared using clearLatchedStatusFlags() or reset().
+  ///
+  /// For more information, see the "Status flags" variable in the Motoron
+  /// user's guide.
   bool getCrcErrorFlag()
   {
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_CRC_ERROR);
   }
 
+  /// Returns the "Command timeout latched" bit from getStatusFlags().
+  ///
+  /// This flag is set when the Motoron's command timeout feature is activated
+  /// because too much time has passed since it received a command.
+  /// It can be cleared using clearLatchedStatusFlags() or reset().
+  ///
+  /// This is the latched version of getCommandTimeoutFlag().
+  ///
+  /// For more information, see the "Status flags" variable in the Motoron
+  /// user's guide.
   bool getCommandTimeoutLatchedFlag()
   {
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_COMMAND_TIMEOUT_LATCHED);
