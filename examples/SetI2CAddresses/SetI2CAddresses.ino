@@ -8,12 +8,12 @@
 // To scan your I2C bus for devices, send a line starting with
 // "s".
 //
-// To change the I2C address of a Motoron, short the Motoron's
-// JMP1 pin to GND, then send a line starting with "w", followed
+// To assign an I2C address to a Motoron, short the Motoron's
+// JMP1 pin to GND, then send a line starting with "a", followed
 // by the address you want to assign as a decimal number.  For
-// example, "w17" sets the address of the Motoron to decimal 17.
+// example, "a17" sets the address of the Motoron to decimal 17.
 //
-// Alternatively, you can send a line that just contains "w"
+// Alternatively, you can send a line that just contains "a"
 // by itself in order to have the sketch automatically pick a
 // number for you.
 //
@@ -40,6 +40,8 @@
 // address (0).
 MotoronI2C mc(0);
 
+// The next address this sketch will try to use when you send an
+// "a" command to automatically assign an address.
 uint8_t nextAddress = 17;
 
 uint8_t lineSize;
@@ -52,6 +54,29 @@ char lineBuffer[40];
 #define WIRE Wire
 #endif
 
+// This function defines which I2C addresses this sketch is
+// allowed to communicate with.
+bool allowAddressCommunication(uint8_t address)
+{
+  // Addresses cannot be larger than 127.
+  if (address >= 128) { return false; }
+
+  // If you have devices on your bus and you want to
+  // prevent this sketch from talking to them, potentially
+  // causing unwanted operations, add their 7-bit addresses here
+  // with a line like this:
+  // if (address == 0x6B) { return false; }
+
+  return true;
+}
+
+// This function defines which I2C addresses this sketch is
+// allowed to assign to a device.
+bool allowAddressAssignment(uint8_t address)
+{
+  return allowAddressCommunication(address) && address != 0;
+}
+
 void setup()
 {
   Serial.begin(9600);
@@ -59,20 +84,16 @@ void setup()
   mc.setBus(&WIRE);
 }
 
-uint8_t getNextAddress(uint8_t address)
-{
-  address = address + 1;
-  if (address == 0 || address >= 128) { address = 1; }
-  return address;
-}
-
 void scanForDevices()
 {
   Serial.println(F("Scanning for I2C devices..."));
   for (uint8_t i = 0; i < 128; i++)
   {
+    if (!allowAddressCommunication(i)) { continue; }
+
     WIRE.beginTransmission(i);
     uint8_t error = WIRE.endTransmission();
+
     switch (error)
     {
     case 0:
@@ -94,7 +115,59 @@ void scanForDevices()
   Serial.println(F("Done."));
 }
 
-void writeAddress()
+// Note: This routine writes to many different addresses on your
+// I2C bus.  If you have any non-Motoron devices on your bus,
+// this could cause unexpected changes to those devices.
+// You can modify allowAddressCommunication() to prevent this.
+void identifyDevices()
+{
+  char buffer[80];
+  const char * jumperString;
+
+  Serial.println(F("Identifying Motoron controllers..."));
+  for (uint8_t i = 1; i < 128; i++)
+  {
+    if (!allowAddressCommunication(i)) { continue; }
+
+    MotoronI2C test(i);
+    test.enableCrc();
+    if (test.getLastError()) { continue; }
+
+    uint16_t productId, firmwareVersion;
+    test.getFirmwareVersion(&productId, &firmwareVersion);
+    if (test.getLastError()) { continue; }
+
+    uint8_t jumperState = test.getJumperState() & 3;
+    if (jumperState == 0b10)
+    {
+      jumperString = "off";
+      // JMP1 is high, not connected to GND.
+    }
+    else if (jumperState == 0b01)
+    {
+      jumperString = "on";
+      // JMP1 is low, connected to GND.
+    }
+    else if (jumperState == 0b00)
+    {
+      jumperString = "both";
+      // There are multiple Motorons using this address and
+      // their JMP1 pins are in different states.
+    }
+    else
+    {
+      jumperString = "err";
+    }
+
+    sprintf(buffer, "%3d: product=0x%04X version=%x.%02x JMP1=%s",
+      i, productId, firmwareVersion >> 8, firmwareVersion & 0xFF,
+      jumperString);
+    Serial.println(buffer);
+  }
+  Serial.println(F("Done."));
+}
+
+void assignAddress()
 {
   bool desiredAddressSpecified = false;
   uint8_t desiredAddress = nextAddress;
@@ -108,31 +181,40 @@ void writeAddress()
   // the desired address.
   while (1)
   {
-    WIRE.beginTransmission(desiredAddress);
-    uint8_t error = WIRE.endTransmission();
-    if (error == 2) { break; }
-
-    Serial.print(F("Found a device at address "));
-    Serial.print(desiredAddress);
-    Serial.println('.');
-    if (desiredAddressSpecified)
+    if (allowAddressAssignment(desiredAddress))
     {
-      // The user specified what address they want to use,
-      // so just return.
+      if (!allowAddressCommunication(desiredAddress))
+      {
+        break;
+      }
+
+      WIRE.beginTransmission(desiredAddress);
+      uint8_t error = WIRE.endTransmission();
+      if (error == 2) { break; }
+
+      Serial.print(F("Found a device at address "));
+      Serial.print(desiredAddress);
+      Serial.println('.');
+
+      if (desiredAddressSpecified)
+      {
+        return;
+      }
+    }
+    else if (desiredAddressSpecified)
+    {
+      Serial.print(F("Assignment to address "));
+      Serial.print(desiredAddress);
+      Serial.println(" not allowed.");
       return;
     }
-    else
-    {
-      // Try the next higher address.
-      desiredAddress = nextAddress(desiredAddress);
-      continue;
-    }
+
+    // Try the next higher address.
+    do { desiredAddress++; }
+    while(!allowAddressAssignment(desiredAddress));
   }
 
   mc.enableCrc();
-
-  Serial.print(F("Writing EEPROM device number "));
-  Serial.println(desiredAddress);
 
   // Send a command to set the EEPROM device number to
   // the desired address.  This command will only be
@@ -142,7 +224,10 @@ void writeAddress()
   // shorted to GND.
   mc.writeEepromDeviceNumber(desiredAddress);
 
-  nextAddress = getNextAddress(desiredAddress);
+  Serial.print(F("Assigned address "));
+  Serial.println(desiredAddress);
+
+  nextAddress = desiredAddress + 1;
 }
 
 void processSerialLine()
@@ -153,8 +238,12 @@ void processSerialLine()
     scanForDevices();
     break;
 
-  case 'w':
-    writeAddress();
+  case 'i':
+    identifyDevices();
+    break;
+
+  case 'a':
+    assignAddress();
     break;
 
   case 'u':
