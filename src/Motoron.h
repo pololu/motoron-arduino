@@ -33,9 +33,7 @@ public:
   ///
   /// The `address` parameter specifies the 7-bit I2C address to use, and it
   /// must match the address that the Motoron is configured to use.
-  /// The default value is 15, which is the address that the Motoron uses if
-  /// the JMP1 jumper is disconnected.
-  MotoronI2C(uint8_t address = 15) : address(address) {}
+  MotoronI2C(uint8_t address = 16) : address(address) {}
 
   /// Configures this object to use the specified I2C bus.
   /// The default bus is Wire, which is typically the first or only I2C bus on
@@ -270,6 +268,20 @@ public:
     protocolOptions = defaultProtocolOptions;
   }
 
+  /// Sends an "Update device number" command to the Motoron, which causes the
+  /// Motoron to update the I2C address it is using.
+  ///
+  /// For more details, see the "Update device number" command in the
+  /// Motoron user's guide.
+  ///
+  /// This function does not update what I2C address this library is configured
+  /// to use.  You can do that by calling setAddress().
+  void updateDeviceNumber()
+  {
+    uint8_t cmd = MOTORON_CMD_UPDATE_DEVICE_NUMBER;
+    sendCommandCore(1, &cmd, true);
+  }
+
   /// Reads information from the Motoron using a "Get variables" command.
   ///
   /// This library has helper methods to read every variable, but this method
@@ -485,6 +497,11 @@ public:
   uint16_t getErrorMask()
   {
     return getVar16(0, MOTORON_VAR_ERROR_MASK);
+  }
+
+  uint8_t getJumperState()
+  {
+    return getVar16(0, MOTORON_VAR_JUMPER_STATE);
   }
 
   int16_t getTargetSpeed(uint8_t motor)
