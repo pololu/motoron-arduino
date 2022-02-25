@@ -26,11 +26,11 @@ void setup()
   // CRC.  The bytes for each of these commands are shown here
   // in case you want to implement them on your own without
   // using the library.
-  mc.reset();           // Bytes: 0x96 0x74
+  mc.reinitialize();    // Bytes: 0x96 0x74
   mc.disableCrc();      // Bytes: 0x8B 0x04 0x7B 0x43
 
   // Clear the reset flag, which is set after the controller
-  // resets and counts as an error.
+  // reinitializes and counts as an error.
   mc.clearResetFlag();
 
   // By default, the Motoron is configured to stop the motors if

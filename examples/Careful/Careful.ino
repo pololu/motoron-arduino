@@ -41,7 +41,7 @@ void setup()
   Serial.begin(9600);
   Wire.begin();
 
-  mc.reset();
+  mc.reinitialize();
   mc.clearResetFlag();
 
   // Configure the Motoron to coast the motors while obeying

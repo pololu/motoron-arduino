@@ -45,7 +45,7 @@ void motorsInit()
 void setup()
 {
   Wire.begin();
-  mc.reset();
+  mc.reinitialize();
   motorsInit();
 }
 

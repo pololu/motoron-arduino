@@ -256,14 +256,15 @@ public:
     writeEeprom(MOTORON_SETTING_DEVICE_NUMBER, number);
   }
 
-  /// Sends a "Reset" command to the Motoron, which resets most of the Motoron's
-  /// variables to their default state.
+  /// Sends a "Reinitialize" command to the Motoron, which resets most of the
+  /// Motoron's variables to their default state.
   ///
-  /// For more information, see the "Reset" command in the Motoron user's guide.
-  void reset()
+  /// For more information, see the "Reinitialize" command in the Motoron
+  /// user's guide.
+  void reinitialize()
   {
     // Always send the reset command with a CRC byte to make it more reliable.
-    uint8_t cmd = MOTORON_CMD_RESET;
+    uint8_t cmd = MOTORON_CMD_REINITIALIZE;
     sendCommandCore(1, &cmd, true);
     protocolOptions = defaultProtocolOptions;
   }
