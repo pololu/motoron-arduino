@@ -261,6 +261,8 @@ public:
   ///
   /// For more information, see the "Reinitialize" command in the Motoron
   /// user's guide.
+  ///
+  /// \sa reset()
   void reinitialize()
   {
     // Always send the reset command with a CRC byte to make it more reliable.
@@ -269,18 +271,19 @@ public:
     protocolOptions = defaultProtocolOptions;
   }
 
-  /// Sends an "Update device number" command to the Motoron, which causes the
-  /// Motoron to update the I2C address it is using.
+  /// Sends a "Reset" command to the Motoron, which does a full hardware reset.
   ///
-  /// For more details, see the "Update device number" command in the
-  /// Motoron user's guide.
+  /// This command is equivalent to briefly driving the Motoron's RST pin low.
   ///
-  /// This function does not update what I2C address this library is configured
-  /// to use.  You can do that by calling setAddress().
-  void updateDeviceNumber()
+  /// After running this command, we recommend waiting for at least 5
+  /// milliseconds before you try to communicate with the Motoron.
+  ///
+  /// \sa reinitialize()
+  void reset()
   {
-    uint8_t cmd = MOTORON_CMD_UPDATE_DEVICE_NUMBER;
+    uint8_t cmd = MOTORON_CMD_RESET;
     sendCommandCore(1, &cmd, true);
+    protocolOptions = defaultProtocolOptions;
   }
 
   /// Reads information from the Motoron using a "Get variables" command.

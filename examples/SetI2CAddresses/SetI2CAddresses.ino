@@ -1,38 +1,41 @@
-// This example sketch provides an interactive utility you can
-// use to set the I2C addresses for a single Motoron controller
-// or a stack of controllers.
+// This example sketch provides an interactive utility you can use to set the
+// I2C addresses for a single Motoron controller or a multiple of controllers
+// connected to the same I2C bus.
 //
-// After uploading this sketch to your Arduino, open the
-// Serial Monitor (from the Tools menu of the Arduino IDE).
+// After uploading this sketch to your Arduino, open the Serial Monitor
+// (from the Tools menu of the Arduino IDE).
 //
-// To scan your I2C bus for devices, send a line starting with
-// "s".
+// The top of the serial monitor contains a box where you can type commands for
+// this sketch and send them to this sketch by clicking the "Send" button.
 //
-// To assign an I2C address to a Motoron, short the Motoron's
-// JMP1 pin to GND, then send a line starting with "a", followed
-// by the address you want to assign as a decimal number.  For
-// example, "a17" sets the address of the Motoron to decimal 17.
+// To assign an I2C address to a Motoron, send "a" followed by the address
+// (in decimal) while the JMP1 pin of the Motoron you wish to change is
+// shorted to GND.  For example, "a17" sets the address of the Motoron to
+// decimal 17.
 //
-// Alternatively, you can send a line that just contains "a"
-// by itself in order to have the sketch automatically pick a
-// number for you.
+// Alternatively, you can send a line that just contains "a" by itself in order
+// to have the sketch automatically pick an address for you.
 //
-// After you are done changing the address of a Motoron, you
-// should stop shorting its JMP1 pin to GND.
+// To make the Motoron start using its new address, you can reset it by power
+// cycling it, driving its RST line low, or by sending "r".
 //
-// The commands in this sketch use the I2C general call address
-// (0), so they might interfere with other devices that use that
-// address, and they will not work if you previously disabled
-// the general call address on a Motoron and have not reset the
-// Motoron since then.
+// The "s" command does a simple scan of the bus to see which addresses have
+// devices responding.  This can help you make sure you have set up your
+// I2C bus correctly.
 //
-// The new I2C address will not actually be used until you reset
-// the Motoron, power cycle it, or use the "u" command.
+// The "i" command goes further, sending extra commands to detect the Motoron
+// devices on the bus and print information about them.  Note that if there are
+// devices on your I2C bus that are not Motorons, the commands sent to those
+// devices might be misinterpreted and cause undesired behavior.
+//
+// The "a" and "r" commands in this sketch use the I2C general call address
+// (0), so they might interfere with other devices that use that address, and
+// they will not work if you disabled the general call address on a Motoron.
 //
 // This sketch expects each command to be terminated with a
 // line-ending character ('\r' or '\n').  The serial monitor
 // automatically sends a line-ending character when you click
-// the Send button or press Enter.  Do not send quote characters.
+// the Send button or press Enter.
 
 #include <Motoron.h>
 
@@ -77,11 +80,62 @@ bool allowAddressAssignment(uint8_t address)
   return allowAddressCommunication(address) && address != 0;
 }
 
-void setup()
+void assignAddress()
 {
-  Serial.begin(9600);
-  WIRE.begin();
-  mc.setBus(&WIRE);
+  bool desiredAddressSpecified = false;
+  uint8_t desiredAddress = nextAddress;
+  if (lineBuffer[1])
+  {
+    desiredAddress = strtoul(lineBuffer + 1, NULL, 10) & 127;
+    desiredAddressSpecified = true;
+  }
+
+  while (1)
+  {
+    if (allowAddressAssignment(desiredAddress))
+    {
+      if (desiredAddressSpecified || !allowAddressCommunication(desiredAddress))
+      {
+        break;
+      }
+
+      // Make sure there is not already a device on the bus using
+      // the desired address.
+      WIRE.beginTransmission(desiredAddress);
+      uint8_t error = WIRE.endTransmission();
+      if (error == 2) { break; }
+
+      Serial.print(F("Found a device at address "));
+      Serial.print(desiredAddress);
+      Serial.println('.');
+    }
+    else if (desiredAddressSpecified)
+    {
+      Serial.print(F("Assignment to address "));
+      Serial.print(desiredAddress);
+      Serial.println(" not allowed.");
+      return;
+    }
+
+    // Try the next higher address.
+    do { desiredAddress++; }
+    while(!allowAddressAssignment(desiredAddress));
+  }
+
+  mc.enableCrc();
+
+  // Send a command to set the EEPROM device number to
+  // the desired address.  This command will only be
+  // received by Motorons that are configured to listen
+  // to the general call address (which is the default)
+  // and will only be obeyed by Motorons that have JMP1
+  // shorted to GND.
+  mc.writeEepromDeviceNumber(desiredAddress);
+
+  Serial.print(F("Assigned address "));
+  Serial.println(desiredAddress);
+
+  nextAddress = desiredAddress + 1;
 }
 
 void scanForDevices()
@@ -167,88 +221,25 @@ void identifyDevices()
   Serial.println(F("Done."));
 }
 
-void assignAddress()
-{
-  bool desiredAddressSpecified = false;
-  uint8_t desiredAddress = nextAddress;
-  if (lineBuffer[1])
-  {
-    desiredAddress = strtoul(lineBuffer + 1, NULL, 10) & 127;
-    desiredAddressSpecified = true;
-  }
-
-  // Make sure there is not already a device on the bus using
-  // the desired address.
-  while (1)
-  {
-    if (allowAddressAssignment(desiredAddress))
-    {
-      if (!allowAddressCommunication(desiredAddress))
-      {
-        break;
-      }
-
-      WIRE.beginTransmission(desiredAddress);
-      uint8_t error = WIRE.endTransmission();
-      if (error == 2) { break; }
-
-      Serial.print(F("Found a device at address "));
-      Serial.print(desiredAddress);
-      Serial.println('.');
-
-      if (desiredAddressSpecified)
-      {
-        return;
-      }
-    }
-    else if (desiredAddressSpecified)
-    {
-      Serial.print(F("Assignment to address "));
-      Serial.print(desiredAddress);
-      Serial.println(" not allowed.");
-      return;
-    }
-
-    // Try the next higher address.
-    do { desiredAddress++; }
-    while(!allowAddressAssignment(desiredAddress));
-  }
-
-  mc.enableCrc();
-
-  // Send a command to set the EEPROM device number to
-  // the desired address.  This command will only be
-  // received by Motorons that are configured to listen
-  // to the general call address (which is the default)
-  // and will only be obeyed by Motorons that have JMP1
-  // shorted to GND.
-  mc.writeEepromDeviceNumber(desiredAddress);
-
-  Serial.print(F("Assigned address "));
-  Serial.println(desiredAddress);
-
-  nextAddress = desiredAddress + 1;
-}
-
 void processSerialLine()
 {
   switch (lineBuffer[0])
   {
+  case 'a':
+    assignAddress();
+    break;
+
+  case 'r':
+    Serial.println(F("Reset"));
+    mc.reset();
+    break;
+
   case 's':
     scanForDevices();
     break;
 
   case 'i':
     identifyDevices();
-    break;
-
-  case 'a':
-    assignAddress();
-    break;
-
-  case 'u':
-    Serial.println(F("Making new addresses take effect."));
-    mc.updateDeviceNumber();
     break;
 
   default:
@@ -274,10 +265,17 @@ void processSerialByte(uint8_t byteReceived)
     return;
   }
 
-  if (lineSize < sizeof(lineBuffer))
+  if (lineSize < sizeof(lineBuffer) && byteReceived != '"')
   {
     lineBuffer[lineSize++] = byteReceived;
   }
+}
+
+void setup()
+{
+  Serial.begin(9600);
+  WIRE.begin();
+  mc.setBus(&WIRE);
 }
 
 void loop()
