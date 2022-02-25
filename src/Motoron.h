@@ -518,13 +518,6 @@ public:
     return getVar16(motor, MOTORON_MVAR_TARGET_BRAKE_AMOUNT);
   }
 
-  // This function is used by Pololu for testing.
-  // TODO: remove
-  bool getCoastRequest(uint8_t motor)
-  {
-    return getTargetBrakeAmount(motor) == 0;
-  }
-
   int16_t getCurrentSpeed(uint8_t motor)
   {
     return getVar16(motor, MOTORON_MVAR_CURRENT_SPEED);
@@ -940,5 +933,5 @@ private:
   TwoWire * bus = &Wire;
   uint8_t address;
   uint8_t lastError = 0;
-  uint8_t protocolOptions = defaultProtocolOptions; // TODO: remove this and most of the helpers that use it?
+  uint8_t protocolOptions = defaultProtocolOptions;
 };
