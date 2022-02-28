@@ -274,6 +274,8 @@ public:
   /// Sends a "Reset" command to the Motoron, which does a full hardware reset.
   ///
   /// This command is equivalent to briefly driving the Motoron's RST pin low.
+  /// The Motoron's RST is briefly driven low by the Motoron itself as a
+  /// result of this command.
   ///
   /// After running this command, we recommend waiting for at least 5
   /// milliseconds before you try to communicate with the Motoron.
@@ -505,7 +507,7 @@ public:
 
   uint8_t getJumperState()
   {
-    return getVar16(0, MOTORON_VAR_JUMPER_STATE);
+    return getVar8(0, MOTORON_VAR_JUMPER_STATE);
   }
 
   int16_t getTargetSpeed(uint8_t motor)
