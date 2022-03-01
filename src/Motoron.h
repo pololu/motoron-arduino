@@ -137,6 +137,18 @@ public:
     if (getLastError()) { return; }
   }
 
+  /// Sets the protocol options for this object, without sending a command to
+  /// the Motoron.
+  ///
+  /// If the options you specify here do not match the actual configuration of
+  /// the Motoron, future communication could fail.
+  ///
+  /// Most users should use setProtocolOptions() instead of this.
+  void setProtocolOptionsLocally(uint8_t options)
+  {
+    this->protocolOptions = options;
+  }
+
   /// Enables CRC for commands and responses.  See setProtocolOptions().
   void enableCrc()
   {
