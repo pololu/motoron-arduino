@@ -294,11 +294,11 @@ public:
   /// is useful if you want to get the raw bytes, or if you want to read
   /// multiple consecutive variables at the same time for efficiency.
   ///
-  /// @param motor 0 to read general variables, or a motor number to read
+  /// \param motor 0 to read general variables, or a motor number to read
   ///   motor-specific variables.
-  /// @param offset The location of the first byte to read.
-  /// @param length How many bytes to read.
-  /// @param buffer A pointer to an array to store the bytes read
+  /// \param offset The location of the first byte to read.
+  /// \param length How many bytes to read.
+  /// \param buffer A pointer to an array to store the bytes read
   ///   from the controller.
   void getVariables(uint8_t motor, uint8_t offset, uint8_t length, uint8_t * buffer)
   {
@@ -313,9 +313,9 @@ public:
 
   /// Reads one byte from the Motoron using a "Get variables" command.
   ///
-  /// @param motor 0 to read a general variable, or a motor number to read
+  /// \param motor 0 to read a general variable, or a motor number to read
   ///   a motor-specific variable.
-  /// @param offset The location of the byte to read.
+  /// \param offset The location of the byte to read.
   uint8_t getVar8(uint8_t motor, uint8_t offset)
   {
     uint8_t result;
@@ -325,39 +325,14 @@ public:
 
   /// Reads two bytes from the Motoron using a "Get variables" command.
   ///
-  /// @param motor 0 to read general variables, or a motor number to read
+  /// \param motor 0 to read general variables, or a motor number to read
   ///   motor-specific variables.
-  /// @param offset The location of the first byte to read.
+  /// \param offset The location of the first byte to read.
   uint16_t getVar16(uint8_t motor, uint8_t offset)
   {
     uint8_t buffer[2];
     getVariables(motor, offset, 2, buffer);
     return buffer[0] | ((uint16_t)buffer[1] << 8);
-  }
-
-  /// Reads voltage on the Motoron's VIN pin, in raw device units.
-  ///
-  /// For more information, see the "VIN voltage" variable in the Motoron
-  /// user's guide.
-  ///
-  /// \sa getVinVoltageMv()
-  uint16_t getVinVoltage()
-  {
-    return getVar16(0, MOTORON_VAR_VIN_VOLTAGE);
-  }
-
-  /// Reads the voltage on the Motoron's VIN pin and converts it to millivolts.
-  ///
-  /// For more information, see the "VIN voltage" variable in the Motoron
-  /// user's guide.
-  ///
-  /// \param referenceMv The reference voltage (IOREF), in millivolts.
-  ///   For example, use 3300 for a 3.3 V system or 5000 for a 5 V system.
-  ///
-  /// \sa getVinVoltage()
-  uint32_t getVinVoltageMv(uint16_t referenceMv)
-  {
-    return (uint32_t)getVinVoltage() * referenceMv / 1024 * 1047 / 47;
   }
 
   /// Reads the "Status flags" variable from the Motoron.
@@ -402,6 +377,10 @@ public:
   /// - getMotorOutputEnabledFlag()
   /// - getMotorDrivingFlag()
   ///
+  /// The clearLatchedStatusFlags() method sets the specified set of latched
+  /// status flags to 0.  The reinitialize() and reset() commands reset the
+  /// latched status flags to their default values.
+  ///
   /// For more information, see the "Status flags" variable in the Motoron
   /// user's guide.
   uint16_t getStatusFlags()
@@ -410,10 +389,6 @@ public:
   }
 
   /// Returns the "Protocol error" bit from getStatusFlags().
-  ///
-  /// This flag is set when the Motoron receives an invalid byte in a command
-  /// other than the CRC byte.
-  /// It can be cleared using clearLatchedStatusFlags() or reset().
   ///
   /// For more information, see the "Status flags" variable in the Motoron
   /// user's guide.
@@ -424,10 +399,6 @@ public:
 
   /// Returns the "CRC error" bit from getStatusFlags().
   ///
-  /// This flag is set when the Motoron receives an invalid CRC byte
-  /// in a command.
-  /// It can be cleared using clearLatchedStatusFlags() or reset().
-  ///
   /// For more information, see the "Status flags" variable in the Motoron
   /// user's guide.
   bool getCrcErrorFlag()
@@ -437,12 +408,6 @@ public:
 
   /// Returns the "Command timeout latched" bit from getStatusFlags().
   ///
-  /// This flag is set when the Motoron's command timeout feature is activated
-  /// because too much time has passed since it received a command.
-  /// It can be cleared using clearLatchedStatusFlags() or reset().
-  ///
-  /// This is the latched version of getCommandTimeoutFlag().
-  ///
   /// For more information, see the "Status flags" variable in the Motoron
   /// user's guide.
   bool getCommandTimeoutLatchedFlag()
@@ -450,110 +415,260 @@ public:
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_COMMAND_TIMEOUT_LATCHED);
   }
 
+  /// Returns the "Motor fault latched" bit from getStatusFlags().
+  ///
+  /// For more information, see the "Status flags" variable in the Motoron
+  /// user's guide.
   bool getMotorFaultLatchedFlag()
   {
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_MOTOR_FAULT_LATCHED);
   }
 
+  /// Returns the "Motor fault latched" bit from getStatusFlags().
+  ///
+  /// For more information, see the "Status flags" variable in the Motoron
+  /// user's guide.
   bool getNoPowerLatchedFlag()
   {
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_NO_POWER_LATCHED);
   }
 
+  /// Returns the "Reset" bt from getStatusFlags().
+  ///
+  /// This bit is set to 1 when the Motoron powers on, its processor is
+  /// reset (e.g. by reset()), or it receives a reinitialize() command.
+  /// It can be cleared using clearResetFlag() or clearLatchedStatusFlags().
+  ///
+  /// By default, the Motoron is configured to treat this bit as an error,
+  /// so you will need to clear it before you can turn on the motors.
+  ///
+  /// For more information, see the "Status flags" variable in the Motoron
+  /// user's guide.
   bool getResetFlag()
   {
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_RESET);
   }
 
+  /// Returns the "Motor faulting" bit from getStatusFlags().
+  ///
+  /// For more information, see the "Status flags" variable in the Motoron
+  /// user's guide.
   bool getMotorFaultingFlag()
   {
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_MOTOR_FAULTING);
   }
 
+  /// Returns the "No power" bit from getStatusFlags().
+  ///
+  /// For more information, see the "Status flags" variable in the Motoron
+  /// user's guide.
   bool getNoPowerFlag()
   {
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_NO_POWER);
   }
 
+  /// Returns the "Error active" bit from getStatusFlags().
+  ///
+  /// For more information, see the "Status flags" variable in the Motoron
+  /// user's guide.
   bool getErrorActiveFlag()
   {
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_ERROR_ACTIVE);
   }
 
+  /// Returns the "Motor output enabled" bit from getStatusFlags().
+  ///
+  /// For more information, see the "Status flags" variable in the Motoron
+  /// user's guide.
   bool getMotorOutputEnabledFlag()
   {
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_MOTOR_OUTPUT_ENABLED);
   }
 
+  /// Returns the "Motor driving" bit from getStatusFlags().
+  ///
+  /// For more information, see the "Status flags" variable in the Motoron
+  /// user's guide.
   bool getMotorDrivingFlag()
   {
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_MOTOR_DRIVING);
   }
 
+  /// Reads voltage on the Motoron's VIN pin, in raw device units.
+  ///
+  /// For more information, see the "VIN voltage" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \sa getVinVoltageMv()
+  uint16_t getVinVoltage()
+  {
+    return getVar16(0, MOTORON_VAR_VIN_VOLTAGE);
+  }
+
+  /// Reads the voltage on the Motoron's VIN pin and converts it to millivolts.
+  ///
+  /// For more information, see the "VIN voltage" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \param referenceMv The reference voltage (IOREF), in millivolts.
+  ///   For example, use 3300 for a 3.3 V system or 5000 for a 5 V system.
+  ///
+  /// \sa getVinVoltage()
+  uint32_t getVinVoltageMv(uint16_t referenceMv)
+  {
+    return (uint32_t)getVinVoltage() * referenceMv / 1024 * 1047 / 47;
+  }
+
+  /// Reads the "Command timeout" variable and converts it to milliseconds.
+  ///
+  /// For more information, see the "Command timeout" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \sa setCommandTimeoutMilliseconds()
   uint16_t getCommandTimeoutMilliseconds()
   {
     return getVar16(0, MOTORON_VAR_COMMAND_TIMEOUT) * 4;
   }
 
+  /// Reads the "Error response" variable, which defines how the Motoron will
+  /// stop its motors when an error is happening.
+  ///
+  /// For more information, see the "Error response" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \sa setErrorResponse()
   uint8_t getErrorResponse()
   {
     return getVar8(0, MOTORON_VAR_ERROR_RESPONSE);
   }
 
+  /// Reads the "Error mask" variable, which defines which status flags are
+  /// considered to be errors.
+  ///
+  /// For more information, see the "Error mask" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \sa setErrorMask()
   uint16_t getErrorMask()
   {
     return getVar16(0, MOTORON_VAR_ERROR_MASK);
   }
 
+  /// Reads the "Jumper state" variable.
+  ///
+  /// For more information, see the "Jumper state" variable in the Motoron
+  /// user's guide.
   uint8_t getJumperState()
   {
     return getVar8(0, MOTORON_VAR_JUMPER_STATE);
   }
 
+  /// Reads the target speed of the specified motor, which is the speed at
+  /// which the motor has been commanded to move.
+  ///
+  /// For more information, see the "Target speed" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \sa setSpeed(), setAllSpeeds(), setAllSpeedsUsingBuffers()
   int16_t getTargetSpeed(uint8_t motor)
   {
     return getVar16(motor, MOTORON_MVAR_TARGET_SPEED);
   }
 
+  /// Reads the target brake amount for the specified motor.
+  ///
+  /// For more information, see the "Target speed" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \sa setTargetBrakeAmount()
   uint16_t getTargetBrakeAmount(uint8_t motor)
   {
     return getVar16(motor, MOTORON_MVAR_TARGET_BRAKE_AMOUNT);
   }
 
+  /// Reads the current speed of the specified motor, which is the speed that
+  /// the Motoron is currently trying to apply to the motor.
+  ///
+  /// For more information, see the "Target speed" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \sa setSpeedNow(), setAllSpeedsNow(), setAllSpeedsNowUsingBuffers()
   int16_t getCurrentSpeed(uint8_t motor)
   {
     return getVar16(motor, MOTORON_MVAR_CURRENT_SPEED);
   }
 
+  /// Reads the buffered speed of the specified motor.
+  ///
+  /// For more information, see the "Buffered speed" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \sa setBufferedSpeed(), setAllBufferedSpeeds()
   int16_t getBufferedSpeed(uint8_t motor)
   {
     return getVar16(motor, MOTORON_MVAR_BUFFERED_SPEED);
   }
 
+  /// Reads the PWM mode of the specified motor.
+  ///
+  /// For more information, see the "PWM mode" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \sa setPwmMode()
   uint8_t getPwmMode(uint8_t motor)
   {
     return getVar8(motor, MOTORON_MVAR_PWM_MODE);
   }
 
+  /// Reads the maximum acceleration of the specified motor for the forward
+  /// direction.
+  ///
+  /// For more information, see the "Max acceleration forward" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa setMaxAcceleration(), setMaxAccelerationForward()
   uint16_t getMaxAccelerationForward(uint8_t motor)
   {
     return getVar16(motor, MOTORON_MVAR_MAX_ACCEL_FORWARD);
   }
 
+  /// Reads the maximum acceleration of the specified motor for the reverse
+  /// direction.
+  ///
+  /// For more information, see the "Max acceleration reverse" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa setMaxAcceleration(), setMaxAccelerationReverse()
   uint16_t getMaxAccelerationReverse(uint8_t motor)
   {
     return getVar16(motor, MOTORON_MVAR_MAX_ACCEL_REVERSE);
   }
 
+  /// Reads the maximum deceleration of the specified motor for the forward
+  /// direction.
+  ///
+  /// For more information, see the "Max deceleration forward" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa setMaxDeceleration(), setMaxDecelerationForward()
   uint16_t getMaxDecelerationForward(uint8_t motor)
   {
     return getVar16(motor, MOTORON_MVAR_MAX_DECEL_FORWARD);
   }
 
+  /// Reads the maximum deceleration of the specified motor for the reverse
+  /// direction.
+  ///
+  /// For more information, see the "Max deceleration reverse" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa setMaxDeceleration(), setMaxDecelerationReverse()
   uint16_t getMaxDecelerationReverse(uint8_t motor)
   {
     return getVar16(motor, MOTORON_MVAR_MAX_DECEL_REVERSE);
   }
+
+  /// \cond
 
   // This function is used by Pololu for testing.
   uint16_t getMaxDecelerationTemporary(uint8_t motor)
@@ -561,26 +676,66 @@ public:
     return getVar16(motor, MOTORON_MVAR_MAX_DECEL_TMP);
   }
 
+  /// \endcond
+
+  /// Reads the starting speed for the specified motor in the forward direction.
+  ///
+  /// For more information, see the "Starting speed forward" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa setStartingSpeed(), setStartingSpeedForward()
   uint16_t getStartingSpeedForward(uint8_t motor)
   {
     return getVar16(motor, MOTORON_MVAR_STARTING_SPEED_FORWARD);
   }
 
+  /// Reads the starting speed for the specified motor in the reverse direction.
+  ///
+  /// For more information, see the "Starting speed reverse" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa setStartingSpeed(), setStartingSpeedReverse()
   uint16_t getStartingSpeedReverse(uint8_t motor)
   {
     return getVar16(motor, MOTORON_MVAR_STARTING_SPEED_REVERSE);
   }
 
+  /// Reads the direction change delay for the specified motor in the
+  /// forward direction.
+  ///
+  /// For more information, see the "Direction change delay forward" variable
+  /// in the Motoron user's guide.
+  ///
+  /// \sa setDirectionChangeDelay(), setDirectionChangeDelayForward()
   uint8_t getDirectionChangeDelayForward(uint8_t motor)
   {
     return getVar8(motor, MOTORON_MVAR_DIRECTION_CHANGE_DELAY_FORWARD);
   }
 
+  /// Reads the direction change delay for the specified motor in the
+  /// reverse direction.
+  ///
+  /// For more information, see the "Direction change delay reverse" variable
+  /// in the Motoron user's guide.
+  ///
+  /// \sa setDirectionChangeDelay(), setDirectionChangeDelayReverse()
   uint8_t getDirectionChangeDelayReverse(uint8_t motor)
   {
     return getVar8(motor, MOTORON_MVAR_DIRECTION_CHANGE_DELAY_REVERSE);
   }
 
+  /// Configures the Motoron using a "Set variable" command.
+  ///
+  /// This library has helper methods to set every variable, so you should
+  /// not need to call this function directly.
+  ///
+  /// \param motor 0 to set a general variable, or a motor number to set
+  ///   motor-specific variables.
+  /// \param offset The address of the variable to set (only certain offsets
+  ///   are allowed).
+  /// \param value The value to set the variable to.
+  ///
+  /// \sa getVariables
   void setVariable(uint8_t motor, uint8_t offset, uint16_t value)
   {
     if (value > 0x3FFF) { value = 0x3FFF; }
@@ -594,6 +749,12 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// Sets the command timeout period, in milliseconds.
+  ///
+  /// For more information, see the "Command timeout" variable
+  /// in the Motoron user's guide.
+  ///
+  /// \sa disableCommandTimeout(), getCommandTimeoutMilliseconds()
   void setCommandTimeoutMilliseconds(uint16_t ms)
   {
     // Divide by 4, but round up, and make sure we don't have
@@ -602,36 +763,108 @@ public:
     setVariable(0, MOTORON_VAR_COMMAND_TIMEOUT, timeout);
   }
 
+  /// Sets the error response, which defines how the Motoron will
+  /// stop its motors when an error is happening.
+  ///
+  /// The response parameter should be one of:
+  ///
+  /// - MOTORON_ERROR_RESPONSE_COAST
+  /// - MOTORON_ERROR_RESPONSE_BRAKE
+  /// - MOTORON_ERROR_RESPONSE_COAST_NOW
+  /// - MOTORON_ERROR_RESPONSE_BRAKE_NOW
+  ///
+  /// For more information, see the "Error response" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \sa getErrorResponse()
   void setErrorResponse(uint8_t response)
   {
     setVariable(0, MOTORON_VAR_ERROR_RESPONSE, response);
   }
 
+  /// Sets the "Error mask" variable, which defines which status flags are
+  /// considered to be errors.
+  ///
+  /// For more information, see the "Error mask" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \sa getErrorMask(), getStatusFlags()
   void setErrorMask(uint16_t mask)
   {
     setVariable(0, MOTORON_VAR_ERROR_MASK, mask);
   }
 
+  /// This disables the Motoron's command timeout feature by resetting the
+  /// the "Error mask" variable to its default value but with the command
+  /// timeout bit cleared.
+  ///
+  /// By default, the Motoron's command timeout will occur if no valid commands
+  /// are received in 1500 milliseconds, and the command timeout is treated as
+  /// an error, so the motors will shut down.  You can use this function if you
+  /// want to disable that feature.
+  ///
+  /// Note that this function overrides any previous values you set in the
+  /// "Error mask" variable, so if you are using setErrorMask() in your program
+  /// to configure which status flags are treated as errors, you do not need to
+  /// use this function and you probably should not use this function.
+  ///
+  /// \sa setCommandTimeoutMilliseconds(), setErrorMask()
   void disableCommandTimeout()
   {
     setErrorMask(defaultErrorMask & ~(1 << MOTORON_STATUS_FLAG_COMMAND_TIMEOUT));
   }
 
+  /// Sets the PWM mode for the specified motor.
+  ///
+  /// The mode parameter should be one of the following:
+  ///
+  /// - MOTORON_PWM_MODE_DEFAULT (20 kHz)
+  /// - MOTORON_PWM_MODE_1_KHZ 1
+  /// - MOTORON_PWM_MODE_2_KHZ 2
+  /// - MOTORON_PWM_MODE_4_KHZ 3
+  /// - MOTORON_PWM_MODE_5_KHZ 4
+  /// - MOTORON_PWM_MODE_10_KHZ 5
+  /// - MOTORON_PWM_MODE_20_KHZ 6
+  /// - MOTORON_PWM_MODE_40_KHZ 7
+  /// - MOTORON_PWM_MODE_80_KHZ 8
+  ///
+  /// For more information, see the "PWM mode" variable in the Motoron user's
+  /// guide.
+  ///
+  /// \sa getPwmMode()
   void setPwmMode(uint8_t motor, uint8_t mode)
   {
     setVariable(motor, MOTORON_MVAR_PWM_MODE, mode);
   }
 
+  /// Sets the maximum acceleration of the specified motor for the forward
+  /// direction.
+  ///
+  /// For more information, see the "Max acceleration forward" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa setMaxAcceleration(), getMaxAccelerationForward()
   void setMaxAccelerationForward(uint8_t motor, uint16_t accel)
   {
     setVariable(motor, MOTORON_MVAR_MAX_ACCEL_FORWARD, accel);
   }
 
+  /// Sets the maximum acceleration of the specified motor for the reverse
+  /// direction.
+  ///
+  /// For more information, see the "Max acceleration reverse" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa setMaxAcceleration(), getMaxAccelerationReverse()
   void setMaxAccelerationReverse(uint8_t motor, uint16_t accel)
   {
     setVariable(motor, MOTORON_MVAR_MAX_ACCEL_REVERSE, accel);
   }
 
+  /// Sets the maximum acceleration of the specified motor (both directions).
+  ///
+  /// If this function succeeds, it is equivalent to calling
+  /// setMaxAccelerationForward() and setMaxAccelerationReverse().
   void setMaxAcceleration(uint8_t motor, uint16_t accel)
   {
     setMaxAccelerationForward(motor, accel);
@@ -639,16 +872,34 @@ public:
     setMaxAccelerationReverse(motor, accel);
   }
 
+  /// Sets the maximum deceleration of the specified motor for the forward
+  /// direction.
+  ///
+  /// For more information, see the "Max deceleration forward" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa setMaxDeceleration(), getMaxDecelerationForward()
   void setMaxDecelerationForward(uint8_t motor, uint16_t decel)
   {
     setVariable(motor, MOTORON_MVAR_MAX_DECEL_FORWARD, decel);
   }
 
+  /// Sets the maximum deceleration of the specified motor for the reverse
+  /// direction.
+  ///
+  /// For more information, see the "Max deceleration reverse" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa setMaxDeceleration(), getMaxDecelerationReverse()
   void setMaxDecelerationReverse(uint8_t motor, uint16_t decel)
   {
     setVariable(motor, MOTORON_MVAR_MAX_DECEL_REVERSE, decel);
   }
 
+  /// Sets the maximum deceleration of the specified motor (both directions).
+  ///
+  /// If this function succeeds, it is equivalent to calling
+  /// setMaxDecelerationForward() and setMaxDecelerationReverse().
   void setMaxDeceleration(uint8_t motor, uint16_t decel)
   {
     setMaxDecelerationForward(motor, decel);
@@ -656,16 +907,34 @@ public:
     setMaxDecelerationReverse(motor, decel);
   }
 
+  /// Sets the starting speed of the specified motor for the forward
+  /// direction.
+  ///
+  /// For more information, see the "Starting speed forward" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa setStartingSpeed(), getStartingSpeedForward()
   void setStartingSpeedForward(uint8_t motor, uint16_t speed)
   {
     setVariable(motor, MOTORON_MVAR_STARTING_SPEED_FORWARD, speed);
   }
 
+  /// Sets the starting speed of the specified motor for the reverse
+  /// direction.
+  ///
+  /// For more information, see the "Starting speed reverse" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa setStartingSpeed(), getStartingSpeedReverse()
   void setStartingSpeedReverse(uint8_t motor, uint16_t speed)
   {
     setVariable(motor, MOTORON_MVAR_STARTING_SPEED_REVERSE, speed);
   }
 
+  /// Sets the starting speed of the specified motor (both directions).
+  ///
+  /// If this function succeeds, it is equivalent to calling
+  /// setStartingSpeedForward() and setStartingSpeedReverse().
   void setStartingSpeed(uint8_t motor, uint16_t speed)
   {
     setStartingSpeedForward(motor, speed);
@@ -673,16 +942,35 @@ public:
     setStartingSpeedReverse(motor, speed);
   }
 
+  /// Sets the direction change delay of the specified motor for the forward
+  /// direction, in units of 10 ms.
+  ///
+  /// For more information, see the "Direction change delay forward" variable
+  /// in the Motoron user's guide.
+  ///
+  /// \sa setDirectionChangeDelay(), getDirectionChangeDelayForward()
   void setDirectionChangeDelayForward(uint8_t motor, uint8_t duration)
   {
     setVariable(motor, MOTORON_MVAR_DIRECTION_CHANGE_DELAY_FORWARD, duration);
   }
 
+  /// Sets the direction change delay of the specified motor for the reverse
+  /// direction, in units of 10 ms.
+  ///
+  /// For more information, see the "Direction change delay reverse" variable
+  /// in the Motoron user's guide.
+  ///
+  /// \sa setDirectionChangeDelay(), getDirectionChangeDelayReverse()
   void setDirectionChangeDelayReverse(uint8_t motor, uint8_t duration)
   {
     setVariable(motor, MOTORON_MVAR_DIRECTION_CHANGE_DELAY_REVERSE, duration);
   }
 
+  /// Sets the direction change delay of the specified motor (both directions),
+  /// in units of 10 ms.
+  ///
+  /// If this function succeeds, it is equivalent to calling
+  /// setDirectionChangeDelayForward() and setDirectionChangeDelayReverse().
   void setDirectionChangeDelay(uint8_t motor, uint8_t duration)
   {
     setDirectionChangeDelayForward(motor, duration);
@@ -690,23 +978,53 @@ public:
     setDirectionChangeDelayReverse(motor, duration);
   }
 
+  /// Sends a "Coast now" command to the Motoron, causing all of the motors to
+  /// immediately start coasting.
+  ///
+  /// For more information, see the "Coast now" command in the Motoron
+  /// user's guide.
   void coastNow()
   {
     uint8_t cmd = MOTORON_CMD_COAST_NOW;
     sendCommand(1, &cmd);
   }
 
+  /// Sends a "Clear motor fault" command to the Motoron.
+  ///
+  /// If any of the Motoron's motor driver chips are reporting a fault, or
+  /// bit 0 of the flags argument is 1, this command sends a signal to all of
+  /// the motor drivers to tell them to recover from their faults if possible.
+  ///
+  /// For more infomration, see the "Clear motor fault" command in the Motoron
+  /// user's guide.
+  ///
+  /// \sa clearMotorFaultUnconditional(), getMotorFaultingFlag()
   void clearMotorFault(uint8_t flags = 0)
   {
     uint8_t cmd[] = { MOTORON_CMD_CLEAR_MOTOR_FAULT, (uint8_t)(flags & 0x7F) };
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// Sends a "Clear motor fault" command to the Motoron with the
+  /// "unconditional" flag set, so the Motoron will attempt to clear
+  /// its motor driver faults even if no motor driver is currently reporting
+  /// a fault.
+  ///
+  /// This is a more robust version of clearMotorFault().
   void clearMotorFaultUnconditional()
   {
     clearMotorFault(1 << MOTORON_CLEAR_MOTOR_FAULT_UNCONDITIONAL);
   }
 
+  /// Clears the specified flags in getStatusFlags().
+  ///
+  /// For each bit in the flags argument that is 1, this command clears the
+  /// corresponding bit in the "Status flags" variable, setting it to 0.
+  ///
+  /// For more information, see the "Clear latched status flags" command in the
+  /// Motoron user's guide.
+  ///
+  /// \sa getStatusFlags(), setLatchedStatusFlags()
   void clearLatchedStatusFlags(uint16_t flags)
   {
     uint8_t cmd[] = { MOTORON_CMD_CLEAR_LATCHED_STATUS_FLAGS,
@@ -716,11 +1034,36 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// Clears the Motoron's reset flag.
+  ///
+  /// The reset flag is a latched status flag in getStatusFlags() that is
+  /// particularly important to clear: it gets set to 1 after the Motoron
+  /// powers on or experiences a reset, and it is considered to be an error
+  /// by default, so it prevents the motors from running.  Therefore, it is
+  /// necessary to call this function (or clearLatchedStatusFlags()) to clear
+  /// the Reset flag before you can get the motors running.
+
+  /// We recommend that immediately after you clear the reset flag. you should
+  /// configure the Motoron's motor settings and error response settings.
+  /// That way, if the Motoron experiences an unexpected reset while your system
+  /// is running, it will stop running its motors and it will not start them
+  /// again until all the important settings have been configured.
+  ///
+  /// \sa clearLatchedStatusFlags()
   void clearResetFlag()
   {
     clearLatchedStatusFlags(1 << MOTORON_STATUS_FLAG_RESET);
   }
 
+  /// Sets the specified flags in getStatusFlags().
+  ///
+  /// For each bit in the flags argument that is 1, this command sets the
+  /// corresponding bit in the "Status flags" variable to 1.
+  ///
+  /// For more information, see the "Set latched status flags" command in the
+  /// Motoron user's guide.
+  ///
+  /// \sa getStatusFlags(), setLatchedStatusFlags()
   void setLatchedStatusFlags(uint16_t flags)
   {
     uint8_t cmd[] = { MOTORON_CMD_SET_LATCHED_STATUS_FLAGS,
@@ -730,6 +1073,21 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// Sets the target speed of the specified motor.
+  ///
+  /// The current speed will start moving to the specified target speed,
+  /// obeying any acceleration and deceleration limits.
+  ///
+  /// The motor number should be between 1 and the number of motors supported
+  /// by the Motoron.
+  ///
+  /// The speed should be between -800 and 800.  Values outside that range
+  /// will be clipped to -800 or 800 by the Motoron firmware.
+  ///
+  /// For more infomration, see the "Set speed" command in the Motoron
+  /// user's guide.
+  ///
+  /// \sa setSpeedNow(), setAllSpeeds()
   void setSpeed(uint8_t motor, int16_t speed)
   {
     uint8_t cmd[] = {
@@ -741,6 +1099,13 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// Sets the target and current speed of the specified motor, ignoring
+  /// any acceleration and deceleration limits.
+  ///
+  /// For more infomration, see the "Set speed" command in the Motoron
+  /// user's guide.
+  ///
+  /// \sa setSpeed(), setAllSpeedsNow()
   void setSpeedNow(uint8_t motor, int16_t speed)
   {
     uint8_t cmd[] = {
@@ -752,6 +1117,17 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// Sets the buffered speed of the specified motor.
+  ///
+  /// This command does not immediately cause any change to the motor: it
+  /// stores a speed for the specified motor in the Motoron so it can be
+  /// used by later commands.
+  ///
+  /// For more infomration, see the "Set speed" command in the Motoron
+  /// user's guide.
+  ///
+  /// \sa setSpeed(), setAllBufferedSpeeds(),
+  ///   setAllSpeedsUsingBuffers(), setAllSpeedsNowUsingBuffers()
   void setBufferedSpeed(uint8_t motor, int16_t speed)
   {
     uint8_t cmd[] = {
@@ -763,6 +1139,15 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// Sets the target speeds of all three motors at the same time.
+  ///
+  /// This is equivalent to calling setSpeed() once for each motor, but it is
+  /// more efficient because all of the speeds are sent in the same command.
+  ///
+  /// For more information, see the "Set all speeds" command in the Motoron
+  /// user's guide.
+  ///
+  /// \sa setSpeed(), setAllSpeedsNow(), setAllBufferedSpeeds()
   void setAllSpeeds(int16_t speed1, int16_t speed2, int16_t speed3)
   {
     uint8_t cmd[] = {
@@ -777,6 +1162,15 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// Sets the target and currents speeds of all three motors at the same time.
+  ///
+  /// This is equivalent to calling setSpeedNow() once for each motor, but it is
+  /// more efficient because all of the speeds are sent in the same command.
+  ///
+  /// For more information, see the "Set all speeds" command in the Motoron
+  /// user's guide.
+  ///
+  /// \sa setSpeed(), setSpeedNow(), setAllSpeeds()
   void setAllSpeedsNow(int16_t speed1, int16_t speed2, int16_t speed3)
   {
     uint8_t cmd[] = {
@@ -791,6 +1185,17 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// Sets the buffered speeds of all three motors.
+  ///
+  /// This command does not immediately cause any change to the motors: it
+  /// stores speed for each motor in the Motoron so they can be used by later
+  /// commands.
+  ///
+  /// For more infomration, see the "Set all speeds" command in the Motoron
+  /// user's guide.
+  ///
+  /// \sa setSpeed(), setBufferedSpeed(), setAllSpeeds(),
+  ///   setAllSpeedsUsingBuffers(), setAllSpeedsNowUsingBuffers()
   void setAllBufferedSpeeds(int16_t speed1, int16_t speed2, int16_t speed3)
   {
     uint8_t cmd[] = {
@@ -805,18 +1210,51 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// Sets each motor's target speed equal to the buffered speed.
+  ///
+  /// This command is the same as setAllSpeeds() except that the speeds are
+  /// provided ahead of time using setBufferedSpeed() or setAllBufferedSpeeds().
+  ///
+  /// \sa setAllSpeedsNowUsingBuffers(), setBufferedSpeed(),
+  ///   setAllBufferedSpeeds()
   void setAllSpeedsUsingBuffers()
   {
     uint8_t cmd = MOTORON_CMD_SET_ALL_SPEEDS_USING_BUFFERS;
     sendCommand(1, &cmd);
   }
 
+  /// Sets each motor's target speed and current speed equal to the buffered
+  /// speed.
+  ///
+  /// This command is the same as setAllSpeedsNow() except that the speeds are
+  /// provided ahead of time using setBufferedSpeed() or setAllBufferedSpeeds().
+  ///
+  /// \sa setAllSpeedsUsingBuffers(), setBufferedSpeed(),
+  ///   setAllBufferedSpeeds()
   void setAllSpeedsNowUsingBuffers()
   {
     uint8_t cmd = MOTORON_CMD_SET_ALL_SPEEDS_NOW_USING_BUFFERS;
     sendCommand(1, &cmd);
   }
 
+  /// Commands the motor to brake, coast, or something in between.
+  ///
+  /// Sending this command causes the motor to decelerate to speed 0 obeying
+  /// any relevant deceleration limits.  Once the current speed reaches 0, the
+  /// motor will attempt to brake or coast as specified by this command, but
+  /// due to hardware limitations it might not be able to.
+  ///
+  /// The motor number parameter should be between 1 and the number of motors
+  /// supported by the Motoron.
+  ///
+  /// The amount parameter gets stored in the "Target brake amount" variable
+  /// for the motor and should be between 0 (coasting) and 800 (braking).
+  /// Values above 800 will be clipped to 800 by the Motoron firmware.
+  ///
+  /// See the "Set braking" command in the Motoron user's guide for more
+  /// information.
+  ///
+  /// \sa setBrakingNow(), getTargetBrakeAmount()
   void setBraking(uint8_t motor, uint16_t amount)
   {
     uint8_t cmd[] = {
@@ -828,6 +1266,23 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// Commands the motor to brake, coast, or something in between.
+  ///
+  /// Sending this command causes the motor's current speed to change to 0.
+  /// The motor will attempt to brake or coast as specified by this command,
+  /// but due to hardware limitations it might not be able to.
+  ///
+  /// The motor number parameter should be between 1 and the number of motors
+  /// supported by the Motoron.
+  ///
+  /// The amount parameter gets stored in the "Target brake amount" variable
+  /// for the motor and should be between 0 (coasting) and 800 (braking).
+  /// Values above 800 will be clipped to 800 by the Motoron firmware.
+  ///
+  /// See the "Set braking" command in the Motoron user's guide for more
+  /// information.
+  ///
+  /// \sa setBraking(), getTargetBrakeAmount()
   void setBrakingNow(uint8_t motor, uint16_t amount)
   {
     uint8_t cmd[] = {
@@ -839,12 +1294,26 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// Resets the command timeout.
+  ///
+  /// This prevents the command timeout status flags from getting set for some
+  /// time.  (The command timeout is also reset by every other Motoron command,
+  /// as long as its parameters are valid
+  ///
+  /// For more information, see the "Reset command timeout" command in the
+  /// Motoron user's guide.
+  ///
+  /// \sa disableCommandTimeout(), setCommandTimeoutMilliseconds()
   void resetCommandTimeout()
   {
     uint8_t cmd = MOTORON_CMD_RESET_COMMAND_TIMEOUT;
     sendCommand(1, &cmd);
   }
 
+  /// This static method calculates the 7-bit CRC needed for a Motoron
+  /// command or response.  Most users will not need to use this, since most
+  /// methods in this library automatically append a CRC byte or check
+  /// received CRC bytes when appropriate.
   static uint8_t calculateCrc(uint8_t length, const uint8_t * buffer)
   {
     uint8_t crc = 0;
