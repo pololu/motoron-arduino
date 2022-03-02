@@ -5,7 +5,7 @@
 ## Summary
 
 This is a library for the Arduino IDE that helps interface with a
-Motoron motor controlls using I&sup2;C.
+Motoron motor controller using I&sup2;C.
 
 ## Supported platforms
 
@@ -23,11 +23,14 @@ is recommended.
 
 ### Connections
 
-All of the needed connections are made when you plug the Motoron shield into
-your Arduino.  If you are not doing that, you will need to connect the GND
-pins of both boards, connect the SDA pins of both boards, connect the SCL pins
-of both boards, and connect the IOREF pins of both boards in order to supply
-logic power for the Motoron.
+In order to use this library, you will need to power the Motoron's
+logic and connect the Motoron to your board's I&sup2;C pins.  Plugging the
+Motoron shield into a standard Arduino-compatible board achieves this.
+
+If you are not plugging the Motoron in as a shield, you will need to connect
+the GND pins of both boards, connect the SDA pins of both boards, connect
+the SCL pins of both boards, and connect the IOREF pins of both boards in
+order to supply logic power to the Motoron.
 
 ### Software
 
