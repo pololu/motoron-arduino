@@ -65,7 +65,7 @@ The main class provided by this library is MotoronI2C.
 
 ## Documentation
 
-For complete documentation of this library, see [the tic-arduino documentation][doc].  If you are already on that page, then click the links in the "Classes" section above.
+For complete documentation of this library, see [the motoron-arduino documentation][doc].  If you are already on that page, then click the links in the "Classes" section above.
 
 [a-star]: https://www.pololu.com/a-star
 [releases]: https://github.com/pololu/motoron-arduino/releases
