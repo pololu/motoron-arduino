@@ -77,4 +77,4 @@ For complete documentation of this library, see [the motoron-arduino documentati
 
 ## Version history
 
-* 1.0.0 (2022-03-07): Original release.
+* 1.0.0 (2022-03-25): Original release.
