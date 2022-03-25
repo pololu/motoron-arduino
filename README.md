@@ -75,6 +75,13 @@ For complete documentation of this library, see [the motoron-arduino documentati
 [guide]: https://www.pololu.com/docs/0J84
 [ide]: https://www.arduino.cc/en/Main/Software
 
+## Command timeout
+
+By default, the Motoron will turn off its motors if it has not received a valid command in the last 1.5 seconds.  You can change the amount of time it
+takes for the Motoron to time out using MotoronI2C::setCommandTimeoutMilliseconds()
+or you can disable the feature using
+MotoronI2C::disableCommandTimeout().
+
 ## Version history
 
 * 1.0.0 (2022-03-25): Original release.
