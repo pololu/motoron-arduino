@@ -31,7 +31,7 @@ void setup()
 
   // Clear the reset flag, which is set after the controller
   // reinitializes and counts as an error.
-  mc.clearResetFlag();
+  mc.clearResetFlag();  // Bytes: 0xA9 0x00 0x04
 
   // By default, the Motoron is configured to stop the motors if
   // it does not get a motor control command for 1500 ms.  You
