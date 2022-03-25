@@ -5,7 +5,7 @@
 // The motors will stop until you power cycle or reset your
 // Arduino if:
 // - Motor power (VIN) is interrupted
-// - A motor driver fault occurs
+// - A motor fault occurs
 // - A protocol or CRC error occurs
 // - A command timeout occurs
 // - The Motoron experiences a reset

@@ -4,7 +4,7 @@
 //
 // The motors will stop but automatically recover if:
 // - Motor power (VIN) is interrupted
-// - A motor driver fault occurs
+// - A motor fault occurs
 // - The Motoron experiences a reset
 // - A command timeout occurs
 

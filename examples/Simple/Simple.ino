@@ -3,14 +3,14 @@
 //
 // The motors will stop but automatically recover if:
 // - Motor power (VIN) is interrupted, or
-// - A temporary motor driver fault occurs, or
+// - A temporary motor fault occurs, or
 // - A command timeout occurs.
 //
 // The motors will stop until you power cycle or reset your
 // Arduino if:
 // - The Motoron experiences a reset.
 //
-// If a latched motor driver fault occurs, the motors
+// If a latched motor fault occurs, the motors
 // experiencing the fault will stop until you power cycle motor
 // power (VIN) or cause the motors to coast.
 
