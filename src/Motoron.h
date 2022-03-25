@@ -1003,9 +1003,9 @@ public:
 
   /// Sends a "Clear motor fault" command to the Motoron.
   ///
-  /// If any of the Motoron's motor driver chips are reporting a fault, or
-  /// bit 0 of the flags argument is 1, this command sends a signal to all of
-  /// the motor drivers to tell them to recover from their faults if possible.
+  /// If any of the Motoron's motors chips are currently experiencing a
+  /// fault (error), or bit 0 of the flags argument is 1, this command makes
+  /// the Motoron attempt to recover from the faults.
   ///
   /// For more infomration, see the "Clear motor fault" command in the Motoron
   /// user's guide.
@@ -1018,9 +1018,8 @@ public:
   }
 
   /// Sends a "Clear motor fault" command to the Motoron with the
-  /// "unconditional" flag set, so the Motoron will attempt to clear
-  /// its motor driver faults even if no motor driver is currently reporting
-  /// a fault.
+  /// "unconditional" flag set, so the Motoron will attempt to recover
+  /// from any motor faults even if no fault is currently occurring.
   ///
   /// This is a more robust version of clearMotorFault().
   void clearMotorFaultUnconditional()
