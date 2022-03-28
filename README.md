@@ -5,7 +5,8 @@
 ## Summary
 
 This is a library for the Arduino IDE that helps interface with a
-Motoron motor controller using I&sup2;C.
+[Motoron M3S256 Triple Motor Controller Shield for Arduino][M3S256] using I&sup2;C.
+
 
 ## Supported platforms
 
@@ -69,12 +70,6 @@ The main class provided by this library is MotoronI2C.
 
 For complete documentation of this library, see [the motoron-arduino documentation][doc].  If you are already on that page, then click the links in the "Classes" section above.
 
-[a-star]: https://www.pololu.com/a-star
-[releases]: https://github.com/pololu/motoron-arduino/releases
-[doc]: https://pololu.github.io/motoron-arduino/
-[guide]: https://www.pololu.com/docs/0J84
-[ide]: https://www.arduino.cc/en/Main/Software
-
 ## Command timeout
 
 By default, the Motoron will turn off its motors if it has not received a valid command in the last 1.5 seconds.  You can change the amount of time it
@@ -85,3 +80,10 @@ MotoronI2C::disableCommandTimeout().
 ## Version history
 
 * 1.0.0 (2022-03-25): Original release.
+
+[M3S256]: https://www.pololu.com/product/5030
+[a-star]: https://www.pololu.com/a-star
+[releases]: https://github.com/pololu/motoron-arduino/releases
+[doc]: https://pololu.github.io/motoron-arduino/
+[guide]: https://www.pololu.com/docs/0J84
+[ide]: https://www.arduino.cc/en/Main/Software
