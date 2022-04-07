@@ -736,6 +736,46 @@ public:
     return getVar8(motor, MOTORON_MVAR_DIRECTION_CHANGE_DELAY_REVERSE);
   }
 
+  /// Reads the current limit for the specified motor.
+  ///
+  /// This only works for Motorons that have adjustable current limiting.
+  ///
+  /// For more information, see the "Current limit" variable
+  /// in the Motoron user's guide.
+  ///
+  /// \sa setCurrentLimit()
+  uint16_t getCurrentLimit(uint8_t motor)
+  {
+    return getVar16(motor, MOTORON_MVAR_CURRENT_LIMIT);
+  }
+
+  /// Reads the current sense measurement for the specified motor.
+  ///
+  /// This only works for Motorons that have current sensing.
+  ///
+  /// For more information, see the "Current sense" variable
+  /// in the Motoron user's guide.
+  uint16_t getCurrentSense(uint8_t motor)
+  {
+    return getVar16(motor, MOTORON_MVAR_CURRENT_SENSE);
+  }
+
+  /// Reads the current sense measurement and the current speed of a motor
+  /// using a single command.
+  ///
+  /// This only works for Motorons that have current sensing.
+  ///
+  /// This is more efficient and more accurate than using getCurrentSense()
+  /// and getCurrentSpeed().
+  void getCurrentSenseAndCurrentSpeed(uint8_t motor, uint16_t * currentSense,
+    int16_t * currentSpeed)
+  {
+    uint8_t buffer[4];
+    getVariables(motor, MOTORON_MVAR_CURRENT_SENSE, 4, buffer);
+    *currentSense = buffer[0] | ((uint16_t)buffer[1] << 8);
+    *currentSpeed = buffer[2] | ((uint16_t)buffer[3] << 8);
+  }
+
   /// Configures the Motoron using a "Set variable" command.
   ///
   /// This library has helper methods to set every variable, so you should
@@ -990,6 +1030,20 @@ public:
     setDirectionChangeDelayReverse(motor, duration);
   }
 
+  /// Sets the current limit for the specified motor.
+  ///
+  /// This only works for Motorons that have adjustable current limiting.
+  ///
+  /// The units of the current limit depend on the type of Motoron you have
+  /// and the logic voltage of your system.  See the "Current limit" variable
+  /// in the Motoron user's guide for more information.
+  ///
+  /// \sa getCurrentLimit()
+  void setCurrentLimit(uint8_t motor, uint16_t limit)
+  {
+    setVariable(motor, MOTORON_MVAR_CURRENT_LIMIT, limit);
+  }
+
   /// Sends a "Coast now" command to the Motoron, causing all of the motors to
   /// immediately start coasting.
   ///
@@ -1150,7 +1204,12 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
-  /// Sets the target speeds of all three motors at the same time.
+
+  /// Sets the target speeds of all the motors at the same time.
+  ///
+  /// The number of speed arguments you provide to this function must be equal
+  /// to the number of motor channels your Motoron has, or else this command
+  /// might not work.
   ///
   /// This is equivalent to calling setSpeed() once for each motor, but it is
   /// more efficient because all of the speeds are sent in the same command.
@@ -1159,6 +1218,18 @@ public:
   /// user's guide.
   ///
   /// \sa setSpeed(), setAllSpeedsNow(), setAllBufferedSpeeds()
+  void setAllSpeeds(int16_t speed1, int16_t speed2)
+  {
+    uint8_t cmd[] = {
+      MOTORON_CMD_SET_ALL_SPEEDS,
+      (uint8_t)(speed1 & 0x7F),
+      (uint8_t)((speed1 >> 7) & 0x7F),
+      (uint8_t)(speed2 & 0x7F),
+      (uint8_t)((speed2 >> 7) & 0x7F),
+    };
+    sendCommand(sizeof(cmd), cmd);
+  }
+
   void setAllSpeeds(int16_t speed1, int16_t speed2, int16_t speed3)
   {
     uint8_t cmd[] = {
@@ -1173,7 +1244,11 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
-  /// Sets the target and currents speeds of all three motors at the same time.
+  /// Sets the target and current speeds of all the motors at the same time.
+  ///
+  /// The number of speed arguments you provide to this function must be equal
+  /// to the number of motor channels your Motoron has, or else this command
+  /// might not work.
   ///
   /// This is equivalent to calling setSpeedNow() once for each motor, but it is
   /// more efficient because all of the speeds are sent in the same command.
@@ -1182,6 +1257,18 @@ public:
   /// user's guide.
   ///
   /// \sa setSpeed(), setSpeedNow(), setAllSpeeds()
+  void setAllSpeedsNow(int16_t speed1, int16_t speed2)
+  {
+    uint8_t cmd[] = {
+      MOTORON_CMD_SET_ALL_SPEEDS_NOW,
+      (uint8_t)(speed1 & 0x7F),
+      (uint8_t)((speed1 >> 7) & 0x7F),
+      (uint8_t)(speed2 & 0x7F),
+      (uint8_t)((speed2 >> 7) & 0x7F),
+    };
+    sendCommand(sizeof(cmd), cmd);
+  }
+
   void setAllSpeedsNow(int16_t speed1, int16_t speed2, int16_t speed3)
   {
     uint8_t cmd[] = {
@@ -1198,6 +1285,10 @@ public:
 
   /// Sets the buffered speeds of all three motors.
   ///
+  /// The number of speed arguments you provide to this function must be equal
+  /// to the number of motor channels your Motoron has, or else this command
+  /// might not work.
+  ///
   /// This command does not immediately cause any change to the motors: it
   /// stores speed for each motor in the Motoron so they can be used by later
   /// commands.
@@ -1207,6 +1298,18 @@ public:
   ///
   /// \sa setSpeed(), setBufferedSpeed(), setAllSpeeds(),
   ///   setAllSpeedsUsingBuffers(), setAllSpeedsNowUsingBuffers()
+  void setAllBufferedSpeeds(int16_t speed1, int16_t speed2)
+  {
+    uint8_t cmd[] = {
+      MOTORON_CMD_SET_ALL_BUFFERED_SPEEDS,
+      (uint8_t)(speed1 & 0x7F),
+      (uint8_t)((speed1 >> 7) & 0x7F),
+      (uint8_t)(speed2 & 0x7F),
+      (uint8_t)((speed2 >> 7) & 0x7F),
+    };
+    sendCommand(sizeof(cmd), cmd);
+  }
+
   void setAllBufferedSpeeds(int16_t speed1, int16_t speed2, int16_t speed3)
   {
     uint8_t cmd[] = {
