@@ -112,7 +112,7 @@ public:
   /// even if CRC was previously disabled but has been re-enabled on the device
   /// (e.g. due to a reset).
   ///
-  /// The \p options argument should be 0 a combination of the following
+  /// The \p options argument should be 0 or a combination of the following
   /// expressions made using the bitwise or operator (|):
   /// - (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS)
   /// - (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_RESPONSES)
@@ -436,7 +436,7 @@ public:
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_MOTOR_FAULT_LATCHED);
   }
 
-  /// Returns the "Motor fault latched" bit from getStatusFlags().
+  /// Returns the "No power latched" bit from getStatusFlags().
   ///
   /// For more information, see the "Status flags" variable in the Motoron
   /// user's guide.
@@ -445,7 +445,7 @@ public:
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_NO_POWER_LATCHED);
   }
 
-  /// Returns the "Reset" bt from getStatusFlags().
+  /// Returns the "Reset" bit from getStatusFlags().
   ///
   /// This bit is set to 1 when the Motoron powers on, its processor is
   /// reset (e.g. by reset()), or it receives a reinitialize() command.
@@ -747,7 +747,7 @@ public:
   ///   are allowed).
   /// \param value The value to set the variable to.
   ///
-  /// \sa getVariables
+  /// \sa getVariables()
   void setVariable(uint8_t motor, uint8_t offset, uint16_t value)
   {
     if (value > 0x3FFF) { value = 0x3FFF; }
@@ -1007,7 +1007,7 @@ public:
   /// fault (error), or bit 0 of the flags argument is 1, this command makes
   /// the Motoron attempt to recover from the faults.
   ///
-  /// For more infomration, see the "Clear motor fault" command in the Motoron
+  /// For more information, see the "Clear motor fault" command in the Motoron
   /// user's guide.
   ///
   /// \sa clearMotorFaultUnconditional(), getMotorFaultingFlag()
@@ -1095,7 +1095,7 @@ public:
   /// The speed should be between -800 and 800.  Values outside that range
   /// will be clipped to -800 or 800 by the Motoron firmware.
   ///
-  /// For more infomration, see the "Set speed" command in the Motoron
+  /// For more information, see the "Set speed" command in the Motoron
   /// user's guide.
   ///
   /// \sa setSpeedNow(), setAllSpeeds()
@@ -1113,7 +1113,7 @@ public:
   /// Sets the target and current speed of the specified motor, ignoring
   /// any acceleration and deceleration limits.
   ///
-  /// For more infomration, see the "Set speed" command in the Motoron
+  /// For more information, see the "Set speed" command in the Motoron
   /// user's guide.
   ///
   /// \sa setSpeed(), setAllSpeedsNow()
@@ -1134,7 +1134,7 @@ public:
   /// stores a speed for the specified motor in the Motoron so it can be
   /// used by later commands.
   ///
-  /// For more infomration, see the "Set speed" command in the Motoron
+  /// For more information, see the "Set speed" command in the Motoron
   /// user's guide.
   ///
   /// \sa setSpeed(), setAllBufferedSpeeds(),
@@ -1202,7 +1202,7 @@ public:
   /// stores speed for each motor in the Motoron so they can be used by later
   /// commands.
   ///
-  /// For more infomration, see the "Set all speeds" command in the Motoron
+  /// For more information, see the "Set all speeds" command in the Motoron
   /// user's guide.
   ///
   /// \sa setSpeed(), setBufferedSpeed(), setAllSpeeds(),
@@ -1309,7 +1309,7 @@ public:
   ///
   /// This prevents the command timeout status flags from getting set for some
   /// time.  (The command timeout is also reset by every other Motoron command,
-  /// as long as its parameters are valid
+  /// as long as its parameters are valid.)
   ///
   /// For more information, see the "Reset command timeout" command in the
   /// Motoron user's guide.
