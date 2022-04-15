@@ -25,6 +25,17 @@ extern const PROGMEM uint8_t motoronCrcTable[256];
 
 /// \endcond
 
+// TODO: fix/reorder these names when the real names are decided
+/// Specifies what type of Motoron is being used, for the purposes of current
+/// limit and current sense calculations.
+enum class MotoronCurrentSenseType {
+  Motoron24v14,
+  Motoron24v18,
+  Motoron18v18,
+  Motoron18v22,
+};
+
+
 /// Represents an I2C connection to a Pololu Motoron Motor Controller.
 class MotoronI2C
 {
@@ -749,12 +760,13 @@ public:
     return getVar16(motor, MOTORON_MVAR_CURRENT_LIMIT);
   }
 
-  /// Reads the current sense measurement for the specified motor.
+  /// Reads the raw current sense measurement for the specified motor.
   ///
   /// This only works for Motorons that have current sensing.
   ///
   /// For more information, see the "Current sense" variable
-  /// in the Motoron user's guide.
+  /// in the Motoron user's guide, or see calculateCurrentSenseMilliamps(),
+  /// a function that converts this raw value to milliamps.
   uint16_t getCurrentSense(uint8_t motor)
   {
     return getVar16(motor, MOTORON_MVAR_CURRENT_SENSE);
@@ -765,8 +777,12 @@ public:
   ///
   /// This only works for Motorons that have current sensing.
   ///
-  /// This is more efficient and more accurate than using getCurrentSense()
-  /// and getCurrentSpeed().
+  /// Both the raw current sense value and the current speed are needed when
+  /// calculating the current of a motor in milliamps.  Using this function to
+  /// fetch both of those values is more efficient and more accurate than using
+  /// getCurrentSense() and getCurrentSpeed() separately.
+  ///
+  /// \sa calculateCurrentSenseMilliamps()
   void getCurrentSenseAndCurrentSpeed(uint8_t motor, uint16_t * currentSense,
     int16_t * currentSpeed)
   {
@@ -1036,7 +1052,9 @@ public:
   ///
   /// The units of the current limit depend on the type of Motoron you have
   /// and the logic voltage of your system.  See the "Current limit" variable
-  /// in the Motoron user's guide for more information.
+  /// in the Motoron user's guide for more information, or see
+  /// Motoron::convertCurrentLimitMilliampsToRaw(), a function that can
+  /// calculate the current limit value.
   ///
   /// \sa getCurrentLimit()
   void setCurrentLimit(uint8_t motor, uint16_t limit)
@@ -1230,6 +1248,7 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// An overload of setAllSpeeds() for Motorons with 3 channels.
   void setAllSpeeds(int16_t speed1, int16_t speed2, int16_t speed3)
   {
     uint8_t cmd[] = {
@@ -1269,6 +1288,7 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// An overload of setAllSpeedsNow() for Motorons with 3 channels.
   void setAllSpeedsNow(int16_t speed1, int16_t speed2, int16_t speed3)
   {
     uint8_t cmd[] = {
@@ -1310,6 +1330,7 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// An overload of setAllBufferedSpeeds() for Motorons with 3 channels.
   void setAllBufferedSpeeds(int16_t speed1, int16_t speed2, int16_t speed3)
   {
     uint8_t cmd[] = {
@@ -1446,6 +1467,54 @@ public:
       // }
     }
     return crc;
+  }
+
+  /// Calculates a current limit value that can be passed to the Motoron
+  /// using setCurrentLimit().
+  ///
+  /// \param milliamps The desired current limit, in units of mA.
+  /// \param type Specifies what type of Motoron you are using.
+  /// \param referenceMv The reference voltage (IOREF), in millivolts.
+  ///   For example, use 3300 for a 3.3 V system or 5000 for a 5 V system.
+  /// \param offsetMv The offset of the current sense signal for the Motoron
+  ///   channel, in millivolts.  This is typically 50.
+  ///   You can calculate this by driving the motor at speed 0, calling
+  ///   getCurrentSense(), and then multiplying by referenceMv/1024.
+  static uint16_t calculateCurrentLimit(uint16_t milliamps,
+    MotoronCurrentSenseType type, uint16_t referenceMv, uint16_t offsetMv)
+  {
+    uint8_t m = type == MotoronCurrentSenseType::Motoron18v22 ? 2 : 1;
+    return ((uint32_t)(milliamps / m) + offsetMv * 50) * 20 / referenceMv;
+  }
+
+  /// Converts a current sense measurement to milliamps.
+  ///
+  /// \param raw The raw current sense value, retrieved from the Motoron with
+  ///   getCurrentSense() or getCurrentSenseAndCurrentSpeed().
+  /// \param speed The current speed of the motor channel, as a number between
+  ///   between -800 and 800, retrieved from the Motoron with getCurrentSpeed()
+  ///   or getCurrentSenseAndCurrentSpeed().
+  /// \param type Specifies what type of Motoron you are using.
+  /// \param referenceMv The reference voltage (IOREF), in millivolts.
+  ///   For example, use 3300 for a 3.3 V system or 5000 for a 5 V system.
+  /// \param offsetMv The offset of the current sense signal for the Motoron
+  ///   channel, in millivolts.  This is typically 50.
+  ///   You can calculate this by driving the motor at speed 0, calling
+  ///   getCurrentSense(), and then multiplying by referenceMv/1024.
+  ///
+  /// Note that the closer the speed is to zero, the lower the resolution of
+  /// the returned current sense measurement.  Also, this only measures
+  /// what the current is doing during the on time of the PWM cycle.
+  static uint16_t calculateCurrentSenseMilliamps(uint16_t raw, int16_t speed,
+    MotoronCurrentSenseType type, uint16_t referenceMv, uint16_t offsetMv)
+  {
+    uint8_t m = type == MotoronCurrentSenseType::Motoron18v22 ? 2 : 1;
+    if (speed < 0) { speed = -speed; }
+    if (speed == 0) { return 0; }
+    uint32_t c = (uint32_t)raw * referenceMv / 16;
+    uint16_t offset = offsetMv * 64;
+    if (offset > c) { return 0; }
+    return (c - offset) * 625 * m / speed;
   }
 
 private:
