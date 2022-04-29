@@ -1480,11 +1480,14 @@ public:
   ///   channel, in millivolts.  This is typically 50.
   ///   You can calculate this by driving the motor at speed 0, calling
   ///   getCurrentSense(), and then multiplying by referenceMv/1024.
-  static uint16_t calculateCurrentLimit(uint16_t milliamps,
+  static uint16_t calculateCurrentLimit(uint32_t milliamps,
     MotoronCurrentSenseType type, uint16_t referenceMv, uint16_t offsetMv)
   {
     uint8_t m = type == MotoronCurrentSenseType::Motoron18v22 ? 2 : 1;
-    return ((uint32_t)(milliamps / m) + offsetMv * 50) * 20 / referenceMv;
+    if (milliamps > 1000000) { milliamps = 1000000; }
+    uint16_t limit = (milliamps / m + offsetMv * 50) * 20 / referenceMv;
+    if (limit > 1000) { limit = 1000; }
+    return limit;
   }
 
   /// Converts a current sense measurement to milliamps.
