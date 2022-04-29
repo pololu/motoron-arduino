@@ -51,8 +51,7 @@ void setup()
   mc.setErrorMask(errorMask);
 
   // Use a short command timeout of 100 ms: the Motoron will
-  // stop the motors if it does not get a motor control command
-  // for 100 ms.
+  // stop the motors if it does not get a command for 100 ms.
   mc.setCommandTimeoutMilliseconds(100);
 
   // Configure motor 1
@@ -74,7 +73,6 @@ void setup()
   // a more predictable starting point.  This is optional.
   while (mc.getMotorDrivingFlag());
 
-  // Clear any latched motor faults.
   mc.clearMotorFault();
 }
 
