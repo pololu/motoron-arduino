@@ -5,8 +5,7 @@
 ## Summary
 
 This is a library for the Arduino IDE that helps interface with a
-[Motoron M3S256 Triple Motor Controller Shield for Arduino][M3S256] using I&sup2;C.
-
+[Motoron motor controller] ([M3S256] or [M3H256]) using I&sup2;C.
 
 ## Supported platforms
 
@@ -81,7 +80,9 @@ MotoronI2C::disableCommandTimeout().
 
 * 1.0.0 (2022-03-25): Original release.
 
+[Motoron motor controller]: https://www.pololu.com/motoron
 [M3S256]: https://www.pololu.com/product/5030
+[M3H256]: https://www.pololu.com/product/5033
 [a-star]: https://www.pololu.com/a-star
 [releases]: https://github.com/pololu/motoron-arduino/releases
 [doc]: https://pololu.github.io/motoron-arduino/
