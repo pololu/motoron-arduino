@@ -772,24 +772,67 @@ public:
     return getVar16(motor, MOTORON_MVAR_CURRENT_SENSE);
   }
 
-  /// Reads the current sense measurement and the current speed of a motor
-  /// using a single command.
+  /// Reads the current sense measurement and the speed of a motor using a
+  /// single command.
   ///
   /// This only works for Motorons that have current sensing.
   ///
-  /// Both the raw current sense value and the current speed are needed when
+  /// Both the raw current sense value and the speed are needed when
   /// calculating the current of a motor in milliamps.  Using this function to
   /// fetch both of those values is more efficient and more accurate than using
   /// getCurrentSense() and getCurrentSpeed() separately.
   ///
   /// \sa calculateCurrentSenseMilliamps()
-  void getCurrentSenseAndCurrentSpeed(uint8_t motor, uint16_t * currentSense,
-    int16_t * currentSpeed)
+  void getCurrentSenseAndSpeed(uint8_t motor, uint16_t * currentSense,
+    int16_t * speed)
   {
     uint8_t buffer[4];
     getVariables(motor, MOTORON_MVAR_CURRENT_SENSE, 4, buffer);
     *currentSense = buffer[0] | ((uint16_t)buffer[1] << 8);
-    *currentSpeed = buffer[2] | ((uint16_t)buffer[3] << 8);
+    *speed = buffer[2] | ((uint16_t)buffer[3] << 8);
+  }
+
+  /// Reads the processed current sense reading for the specified motor.
+  ///
+  /// This only works for Motorons that have current sensing.
+  ///
+  /// The units of this reading depend on the offset you have set with
+  /// setCurrentOffset(), the logic voltage of the Motoron, and on
+  /// the specific model of Motoron that you have.
+  /// See the "Current sense process" variable in the Motoron user's guide for
+  /// more information.
+  ///
+  /// \sa getCurrentSenseProcessedAndSpeed()
+  uint16_t getCurrentSenseProcessed(uint8_t motor)
+  {
+    return getVar16(motor, MOTORON_MVAR_CURRENT_SENSE_PROCESSED);
+  }
+
+  /// Reads the processed current sense measurement and the speed of a motor
+  /// using a single command.
+  ///
+  /// \sa getCurrentSenseProcessed()
+  void getCurrentSenseProcessedAndSpeed(uint8_t motor,
+    uint16_t * currentSenseProcessed, int16_t * speed)
+  {
+    uint8_t buffer[4];
+    getVariables(motor, MOTORON_MVAR_CURRENT_SENSE_SPEED, 4, buffer);
+    *speed = buffer[0] | ((uint16_t)buffer[1] << 8);
+    *currentSenseProcessed = buffer[2] | ((uint16_t)buffer[3] << 8);
+  }
+
+  /// Reads the current sense offset setting that is used to process the current
+  /// sense readings for the specified motor.
+  ///
+  /// This only works for Motorons that have current sensing.
+  ///
+  /// For more information, see the "Current sense offset" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa setCurrentSenseOffset()
+  uint8_t getCurrentSenseOffset(uint8_t motor)
+  {
+    return getVar8(motor, MOTORON_MVAR_CURRENT_SENSE_OFFSET);
   }
 
   /// Configures the Motoron using a "Set variable" command.
@@ -1060,6 +1103,22 @@ public:
   void setCurrentLimit(uint8_t motor, uint16_t limit)
   {
     setVariable(motor, MOTORON_MVAR_CURRENT_LIMIT, limit);
+  }
+
+  /// Sets the current sense offset setting that is used to process the current
+  /// sense readings for the specified motor.
+  ///
+  /// This offset is supposed to be the value returns by getCurrentSense() when
+  /// power is supplied to the Motoron and it is driving its motor outputs at
+  /// speed 0.
+  ///
+  /// For more information, see the "Current sense offset" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa getCurrentSenseOffset()
+  void setCurrentSenseOffset(uint8_t motor, uint8_t offset)
+  {
+    setVariable(motor, MOTORON_MVAR_CURRENT_SENSE_OFFSET, offset);
   }
 
   /// Sends a "Coast now" command to the Motoron, causing all of the motors to
@@ -1493,10 +1552,10 @@ public:
   /// Converts a current sense measurement to milliamps.
   ///
   /// \param raw The raw current sense value, retrieved from the Motoron with
-  ///   getCurrentSense() or getCurrentSenseAndCurrentSpeed().
+  ///   getCurrentSense() or getCurrentSenseAndSpeed().
   /// \param speed The current speed of the motor channel, as a number between
   ///   between -800 and 800, retrieved from the Motoron with getCurrentSpeed()
-  ///   or getCurrentSenseAndCurrentSpeed().
+  ///   or getCurrentSenseAndSpeed().
   /// \param type Specifies what type of Motoron you are using.
   /// \param referenceMv The reference voltage (IOREF), in millivolts.
   ///   For example, use 3300 for a 3.3 V system or 5000 for a 5 V system.
