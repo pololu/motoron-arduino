@@ -35,6 +35,12 @@ enum class MotoronCurrentSenseType {
   Motoron18v22,
 };
 
+struct MotoronCurrentSenseReading
+{
+  uint16_t raw;
+  int16_t speed;
+  uint16_t processed;
+};
 
 /// Represents an I2C connection to a Pololu Motoron Motor Controller.
 class MotoronI2C
@@ -760,65 +766,93 @@ public:
     return getVar16(motor, MOTORON_MVAR_CURRENT_LIMIT);
   }
 
+  /// Reads all the results from the last current sense measurement for the
+  /// specified motor.
+  ///
+  /// This function reads the "Current sense raw", "Current sense speed", and
+  /// "Current sense processed" variables from the Motoron using a single
+  /// command, so the values returned are all guaranteed to be part of the
+  /// same measurement.
+  ///
+  /// You can read these same variables using separate commands if you use the
+  /// getCurrentSenseRaw(), getCurrentSenseSpeed(), and
+  /// getCurrentSenseProcessed() functions, but then it is possible that the
+  /// variables might get updated between the separate read commands.
+  ///
+  /// This function only works for Motorons that have current sensing.
+  ///
+  /// \sa getCurrentSenseRawAndSpeed(), getCurrentSEnseProcessedAndSpeed()
+  MotoronCurrentSenseReading getCurrentSenseReading(uint8_t motor)
+  {
+    uint8_t buffer[6];
+    getVariables(motor, MOTORON_MVAR_CURRENT_SENSE_RAW, sizeof(buffer), buffer);
+    MotoronCurrentSenseReading r = {};
+    r.raw = buffer[0] | ((uint16_t)buffer[1] << 8);
+    r.speed = buffer[2] | ((uint16_t)buffer[3] << 8);
+    r.processed = buffer[4] | ((uint16_t)buffer[5] << 8);
+    return r;
+  }
+
+  /// This is like getCurrentSenseReading() but it only reads the raw current
+  /// sense measurement and the speed.
+  ///
+  /// The 'processed' member of the returned structure will be 0.
+  ///
+  /// This only works for Motorons that have current sensing.
+  MotoronCurrentSenseReading getCurrentSenseRawAndSpeed(uint8_t motor)
+  {
+    uint8_t buffer[4];
+    getVariables(motor, MOTORON_MVAR_CURRENT_SENSE_RAW, sizeof(buffer), buffer);
+    MotoronCurrentSenseReading r = {};
+    r.raw = buffer[0] | ((uint16_t)buffer[1] << 8);
+    r.speed = buffer[2] | ((uint16_t)buffer[3] << 8);
+    return r;
+  }
+
+  /// This is like getCurrentSenseReading() but it only reads the processed
+  /// current sense measurement and the speed.
+  ///
+  /// The 'raw' member of the returned structure will be 0.
+  ///
+  /// This only works for Motorons that have current sensing.
+  MotoronCurrentSenseReading getCurrentSenseProcessedAndSpeed(uint8_t motor)
+  {
+    uint8_t buffer[4];
+    getVariables(motor, MOTORON_MVAR_CURRENT_SENSE_SPEED, sizeof(buffer), buffer);
+    MotoronCurrentSenseReading r = {};
+    r.speed = buffer[0] | ((uint16_t)buffer[1] << 8);
+    r.processed = buffer[2] | ((uint16_t)buffer[3] << 8);
+    return r;
+  }
+
   /// Reads the raw current sense measurement for the specified motor.
   ///
   /// This only works for Motorons that have current sensing.
   ///
-  /// For more information, see the "Current sense" variable
-  /// in the Motoron user's guide, or see calculateCurrentSenseMilliamps(),
-  /// a function that converts this raw value to milliamps.
-  uint16_t getCurrentSense(uint8_t motor)
+  /// For more information, see the "Current sense raw" variable
+  /// in the Motoron user's guide.
+  ///
+  /// \sa getCurrentSenseReading()
+  uint16_t getCurrentSenseRaw(uint8_t motor)
   {
-    return getVar16(motor, MOTORON_MVAR_CURRENT_SENSE);
-  }
-
-  /// Reads the current sense measurement and the speed of a motor using a
-  /// single command.
-  ///
-  /// This only works for Motorons that have current sensing.
-  ///
-  /// Both the raw current sense value and the speed are needed when
-  /// calculating the current of a motor in milliamps.  Using this function to
-  /// fetch both of those values is more efficient and more accurate than using
-  /// getCurrentSense() and getCurrentSpeed() separately.
-  ///
-  /// \sa calculateCurrentSenseMilliamps()
-  void getCurrentSenseAndSpeed(uint8_t motor, uint16_t * currentSense,
-    int16_t * speed)
-  {
-    uint8_t buffer[4];
-    getVariables(motor, MOTORON_MVAR_CURRENT_SENSE, 4, buffer);
-    *currentSense = buffer[0] | ((uint16_t)buffer[1] << 8);
-    *speed = buffer[2] | ((uint16_t)buffer[3] << 8);
+    return getVar16(motor, MOTORON_MVAR_CURRENT_SENSE_RAW);
   }
 
   /// Reads the processed current sense reading for the specified motor.
   ///
   /// This only works for Motorons that have current sensing.
   ///
-  /// The units of this reading depend on the offset you have set with
-  /// setCurrentOffset(), the logic voltage of the Motoron, and on
-  /// the specific model of Motoron that you have.
-  /// See the "Current sense process" variable in the Motoron user's guide for
+  /// The units of this reading depend on the logic voltage of the Motoron
+  /// and on the specific model of Motoron that you have.
+  /// The accuracy of this reading can be improved by measuring the current
+  /// sense offset and setting it with setCurrentSenseOffset().
+  /// See the "Current sense processed" variable in the Motoron user's guide for
   /// more information.
   ///
   /// \sa getCurrentSenseProcessedAndSpeed()
   uint16_t getCurrentSenseProcessed(uint8_t motor)
   {
     return getVar16(motor, MOTORON_MVAR_CURRENT_SENSE_PROCESSED);
-  }
-
-  /// Reads the processed current sense measurement and the speed of a motor
-  /// using a single command.
-  ///
-  /// \sa getCurrentSenseProcessed()
-  void getCurrentSenseProcessedAndSpeed(uint8_t motor,
-    uint16_t * currentSenseProcessed, int16_t * speed)
-  {
-    uint8_t buffer[4];
-    getVariables(motor, MOTORON_MVAR_CURRENT_SENSE_SPEED, 4, buffer);
-    *speed = buffer[0] | ((uint16_t)buffer[1] << 8);
-    *currentSenseProcessed = buffer[2] | ((uint16_t)buffer[3] << 8);
   }
 
   /// Reads the current sense offset setting that is used to process the current
