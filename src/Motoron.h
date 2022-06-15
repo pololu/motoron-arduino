@@ -855,8 +855,7 @@ public:
     return getVar16(motor, MOTORON_MVAR_CURRENT_SENSE_PROCESSED);
   }
 
-  /// Reads the current sense offset setting that is used to process the current
-  /// sense readings for the specified motor.
+  /// Reads the current sense offset setting.
   ///
   /// This only works for Motorons that have current sensing.
   ///
@@ -867,6 +866,19 @@ public:
   uint8_t getCurrentSenseOffset(uint8_t motor)
   {
     return getVar8(motor, MOTORON_MVAR_CURRENT_SENSE_OFFSET);
+  }
+
+  /// Reads the current sense minimum divisor setting.
+  ///
+  /// This only works for Motorons that have current sensing.
+  ///
+  /// For more information, see the "Current sense minimum divisor" variable in
+  /// the Motoron user's guide.
+  ///
+  /// \sa setCurrentSenseMinimumDivisor()
+  uint8_t getCurrentSenseMinimumDivisor(uint8_t motor)
+  {
+    return getVar8(motor, MOTORON_MVAR_CURRENT_SENSE_MINIMUM_DIVISOR);
   }
 
   /// Configures the Motoron using a "Set variable" command.
@@ -1139,12 +1151,12 @@ public:
     setVariable(motor, MOTORON_MVAR_CURRENT_LIMIT, limit);
   }
 
-  /// Sets the current sense offset setting that is used to process the current
-  /// sense readings for the specified motor.
+  /// Sets the current sense offset setting for the specified motor.
   ///
-  /// This offset is supposed to be the value returns by getCurrentSense() when
-  /// power is supplied to the Motoron and it is driving its motor outputs at
-  /// speed 0.
+  /// This offset is one of the settings that determines how current sense
+  /// readings are processed.  It is supposed to be the value returned by
+  /// getCurrentSense() when power is supplied to the Motoron and it is driving
+  /// its motor outputs at speed 0.
   ///
   /// For more information, see the "Current sense offset" variable in the
   /// Motoron user's guide.
@@ -1153,6 +1165,20 @@ public:
   void setCurrentSenseOffset(uint8_t motor, uint8_t offset)
   {
     setVariable(motor, MOTORON_MVAR_CURRENT_SENSE_OFFSET, offset);
+  }
+
+  /// Sets the current sense minimum divisor setting for the specified motor.
+  ///
+  /// This offset is one of the settings that determines how current sense
+  /// readings are processed.
+  ///
+  /// For more information, see the "Current sense minimum divisor" variable in
+  /// the Motoron user's guide.
+  ///
+  /// \sa getCurrentSenseMinimumDivisor()
+  void setCurrentSenseMinimumDivisor(uint8_t motor, uint8_t divisor)
+  {
+    setVariable(motor, MOTORON_MVAR_CURRENT_SENSE_MINIMUM_DIVISOR, divisor);
   }
 
   /// Sends a "Coast now" command to the Motoron, causing all of the motors to
