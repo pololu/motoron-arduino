@@ -17,7 +17,7 @@ const MotoronCurrentSenseType type = MotoronCurrentSenseType::Motoron18v18;
 // to your power supply's expected voltage.
 const uint16_t minVinVoltageMv = 4500;
 
-const uint16_t units = mc.calculateCurrentSenseProcessedUnitsMa(type, referenceMv);
+const uint16_t units = mc.currentSenseUnitsMilliamps(type, referenceMv);
 
 void calibrateCurrent()
 {
