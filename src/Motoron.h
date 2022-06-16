@@ -29,10 +29,10 @@ extern const PROGMEM uint8_t motoronCrcTable[256];
 /// Specifies what type of Motoron is being used, for the purposes of current
 /// limit and current sense calculations.
 enum class MotoronCurrentSenseType {
-  Motoron24v14,
-  Motoron24v18,
-  Motoron18v18,
-  Motoron18v22,
+  Motoron18v18 = 0b0001,
+  Motoron24v14 = 0b0101,
+  Motoron18v22 = 0b1010,
+  Motoron24v18 = 0b1101,
 };
 
 struct MotoronCurrentSenseReading
@@ -781,7 +781,7 @@ public:
   ///
   /// This function only works for Motorons that have current sensing.
   ///
-  /// \sa getCurrentSenseRawAndSpeed(), getCurrentSEnseProcessedAndSpeed()
+  /// \sa getCurrentSenseRawAndSpeed(), getCurrentSenseProcessedAndSpeed()
   MotoronCurrentSenseReading getCurrentSenseReading(uint8_t motor)
   {
     uint8_t buffer[6];
@@ -843,11 +843,13 @@ public:
   /// This only works for Motorons that have current sensing.
   ///
   /// The units of this reading depend on the logic voltage of the Motoron
-  /// and on the specific model of Motoron that you have.
+  /// and on the specific model of Motoron that you have, and you can use
+  /// calculateCurrentSenseProcessedUnitsMa() to calculate the units.
+  ///
   /// The accuracy of this reading can be improved by measuring the current
   /// sense offset and setting it with setCurrentSenseOffset().
   /// See the "Current sense processed" variable in the Motoron user's guide for
-  /// more information.
+  /// or the CurrentSenseCalibrate example for more information.
   ///
   /// \sa getCurrentSenseProcessedAndSpeed()
   uint16_t getCurrentSenseProcessed(uint8_t motor)
@@ -1588,6 +1590,7 @@ public:
     return crc;
   }
 
+  // TODO: change to take the regular offset setting, not offsetMv
   /// Calculates a current limit value that can be passed to the Motoron
   /// using setCurrentLimit().
   ///
@@ -1602,13 +1605,33 @@ public:
   static uint16_t calculateCurrentLimit(uint32_t milliamps,
     MotoronCurrentSenseType type, uint16_t referenceMv, uint16_t offsetMv)
   {
-    uint8_t m = type == MotoronCurrentSenseType::Motoron18v22 ? 2 : 1;
+    uint8_t m = (uint8_t)type & 3;
     if (milliamps > 1000000) { milliamps = 1000000; }
     uint16_t limit = (milliamps / m + offsetMv * 50) * 20 / referenceMv;
     if (limit > 1000) { limit = 1000; }
     return limit;
   }
 
+  /// Calculates the units for the Motoron's current sense reading returned by
+  /// getCurrentSenseProcessed(), in milliamps.
+  ///
+  /// To convert a reading from getCurrentSenseProcessed() to milliamps
+  /// multiply it by the value returned from this function using 32-bit
+  /// multiplication.  For example:
+  ///
+  ///     uint32_t ma = (uint32_t)processed * units;
+  ///
+  /// \param type Specifies what type of Motoron you are using.
+  /// \param referenceMv The reference voltage (IOREF), in millivolts.
+  ///   For example, use 3300 for a 3.3 V system or 5000 for a 5 V system.
+  static constexpr uint16_t calculateCurrentSenseProcessedUnitsMa(
+    MotoronCurrentSenseType type, uint16_t referenceMv)
+  {
+    return ((uint32_t)referenceMv * ((uint8_t)type & 3) * 25 / 512);
+  }
+
+  // TODO: change to take the regular offset setting, not offsetMv
+  // TODO: return a uint32_t
   /// Converts a current sense measurement to milliamps.
   ///
   /// \param raw The raw current sense value, retrieved from the Motoron with
@@ -1630,7 +1653,7 @@ public:
   static uint16_t calculateCurrentSenseMilliamps(uint16_t raw, int16_t speed,
     MotoronCurrentSenseType type, uint16_t referenceMv, uint16_t offsetMv)
   {
-    uint8_t m = type == MotoronCurrentSenseType::Motoron18v22 ? 2 : 1;
+    uint8_t m = (uint8_t)type & 3;
     if (speed < 0) { speed = -speed; }
     if (speed == 0) { return 0; }
     uint32_t c = (uint32_t)raw * referenceMv / 16;

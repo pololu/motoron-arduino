@@ -9,9 +9,15 @@ MotoronI2C mc;
 // ADC reference voltage: change to 3300 if using a 3.3 V Arduino.
 const uint16_t referenceMv = 5000;
 
+// Specifies what type of Motoron you are using, which is needed for converting
+// current sense readings to milliamps.
+const MotoronCurrentSenseType type = MotoronCurrentSenseType::Motoron18v18;
+
 // Minimum allowed VIN voltage.  You can raise this to be closer
 // to your power supply's expected voltage.
 const uint16_t minVinVoltageMv = 4500;
+
+const uint16_t units = mc.calculateCurrentSenseProcessedUnitsMa(type, referenceMv);
 
 void calibrateCurrent()
 {
@@ -42,16 +48,16 @@ void calibrateCurrent()
 
     if ((uint16_t)(millis() - lastTimeConditionsNotMet) > 20)
     {
-      totals[0] += mc.getCurrentSense(1);
-      totals[1] += mc.getCurrentSense(2);
+      totals[0] += mc.getCurrentSenseRaw(1);
+      totals[1] += mc.getCurrentSenseRaw(2);
       if (sampleCount++ == desiredSampleCount) { break; }
     }
   }
 
   mc.setCurrentSenseOffset(1, (totals[0] + desiredSampleCount / 2) / desiredSampleCount);
   mc.setCurrentSenseOffset(2, (totals[1] + desiredSampleCount / 2) / desiredSampleCount);
-  mc.setCurrentSenseMinimumDivisor(1, 20);
-  mc.setCurrentSenseMinimumDivisor(2, 20);
+  mc.setCurrentSenseMinimumDivisor(1, 25);
+  mc.setCurrentSenseMinimumDivisor(2, 25);
 
   Serial.print(F("Current sense offsets: "));
   Serial.print(mc.getCurrentSenseOffset(1));
@@ -61,7 +67,10 @@ void calibrateCurrent()
 
 void setup()
 {
+  // For boards with native USB, this line waits for the serial
+  // monitor to be open.
   while (!Serial);
+
   Wire.begin();
 
   mc.reinitialize();
@@ -85,19 +94,28 @@ void setup()
   calibrateCurrent();
 }
 
+void printCurrent(uint16_t processed)
+{
+  Serial.print(processed);
+  Serial.print(F(" = "));
+  uint32_t ma = (uint32_t)processed * units;
+  Serial.print(ma);
+  Serial.println(F(" mA"));
+}
+
 void loop()
 {
   mc.setSpeed(1, 200);
   delay(1000);
   Serial.print(F("Motor 1 current: "));
-  Serial.println(mc.getCurrentSenseProcessed(1));
+  printCurrent(mc.getCurrentSenseProcessed(1));
   mc.setSpeed(1, 0);
   delay(1000);
 
-  mc.setSpeed(2, 00);
+  mc.setSpeed(2, 200);
   delay(1000);
   Serial.print(F("Motor 2 current: "));
-  Serial.println(mc.getCurrentSenseProcessed(2));
+  printCurrent(mc.getCurrentSenseProcessed(2));
   mc.setSpeed(2, 0);
   delay(1000);
 }
