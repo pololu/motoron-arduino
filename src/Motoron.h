@@ -851,6 +851,9 @@ public:
   /// See the "Current sense processed" variable in the Motoron user's guide for
   /// or the CurrentSenseCalibrate example for more information.
   ///
+  /// Note that this reading will be 0xFFFF if an overflow happens during the
+  /// calculation due to very high current.
+  ///
   /// \sa getCurrentSenseProcessedAndSpeed()
   uint16_t getCurrentSenseProcessed(uint8_t motor)
   {
@@ -870,7 +873,8 @@ public:
     return getVar8(motor, MOTORON_MVAR_CURRENT_SENSE_OFFSET);
   }
 
-  /// Reads the current sense minimum divisor setting.
+  /// Reads the current sense minimum divisor setting and returns it as a speed
+  /// between 0 and 800.
   ///
   /// This only works for Motorons that have current sensing.
   ///
@@ -878,9 +882,9 @@ public:
   /// the Motoron user's guide.
   ///
   /// \sa setCurrentSenseMinimumDivisor()
-  uint8_t getCurrentSenseMinimumDivisor(uint8_t motor)
+  uint16_t getCurrentSenseMinimumDivisor(uint8_t motor)
   {
-    return getVar8(motor, MOTORON_MVAR_CURRENT_SENSE_MINIMUM_DIVISOR);
+    return getVar8(motor, MOTORON_MVAR_CURRENT_SENSE_MINIMUM_DIVISOR) << 2;
   }
 
   /// Configures the Motoron using a "Set variable" command.
@@ -1174,9 +1178,10 @@ public:
     setVariable(motor, MOTORON_MVAR_CURRENT_SENSE_OFFSET, offset);
   }
 
-  /// Sets the current sense minimum divisor setting for the specified motor.
+  /// Sets the current sense minimum divisor setting for the specified motor,
+  /// given a speed between 0 and 800.
   ///
-  /// This offset is one of the settings that determines how current sense
+  /// This is one of the settings that determines how current sense
   /// readings are processed.
   ///
   /// If you do not care about measuring motor current, you do not need to
@@ -1186,9 +1191,9 @@ public:
   /// the Motoron user's guide.
   ///
   /// \sa getCurrentSenseMinimumDivisor()
-  void setCurrentSenseMinimumDivisor(uint8_t motor, uint8_t divisor)
+  void setCurrentSenseMinimumDivisor(uint8_t motor, uint16_t speed)
   {
-    setVariable(motor, MOTORON_MVAR_CURRENT_SENSE_MINIMUM_DIVISOR, divisor);
+    setVariable(motor, MOTORON_MVAR_CURRENT_SENSE_MINIMUM_DIVISOR, speed >> 2);
   }
 
   /// Sends a "Coast now" command to the Motoron, causing all of the motors to

@@ -56,8 +56,8 @@ void calibrateCurrent()
 
   mc.setCurrentSenseOffset(1, (totals[0] + desiredSampleCount / 2) / desiredSampleCount);
   mc.setCurrentSenseOffset(2, (totals[1] + desiredSampleCount / 2) / desiredSampleCount);
-  mc.setCurrentSenseMinimumDivisor(1, 25);
-  mc.setCurrentSenseMinimumDivisor(2, 25);
+  mc.setCurrentSenseMinimumDivisor(1, 100);
+  mc.setCurrentSenseMinimumDivisor(2, 100);
 
   Serial.print(F("Current sense offsets: "));
   Serial.print(mc.getCurrentSenseOffset(1));
