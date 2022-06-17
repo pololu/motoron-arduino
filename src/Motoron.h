@@ -1156,8 +1156,14 @@ public:
   ///
   /// This offset is one of the settings that determines how current sense
   /// readings are processed.  It is supposed to be the value returned by
-  /// getCurrentSense() when power is supplied to the Motoron and it is driving
-  /// its motor outputs at speed 0.
+  /// getCurrentSenseRaw() when power is supplied to the Motoron and it is
+  /// driving its motor outputs at speed 0.
+  ///
+  /// The CurrentSenseCalibrate example shows how to measure the current
+  /// sense offsets and load them onto the Motoron using this function.
+  ///
+  /// If you do not care about measuring motor current, you do not need to
+  /// set this variable.
   ///
   /// For more information, see the "Current sense offset" variable in the
   /// Motoron user's guide.
@@ -1172,6 +1178,9 @@ public:
   ///
   /// This offset is one of the settings that determines how current sense
   /// readings are processed.
+  ///
+  /// If you do not care about measuring motor current, you do not need to
+  /// set this variable.
   ///
   /// For more information, see the "Current sense minimum divisor" variable in
   /// the Motoron user's guide.
@@ -1589,7 +1598,6 @@ public:
     return crc;
   }
 
-  // TODO: change to take the regular offset setting, not offsetMv
   /// Calculates a current limit value that can be passed to the Motoron
   /// using setCurrentLimit().
   ///
@@ -1597,16 +1605,15 @@ public:
   /// \param type Specifies what type of Motoron you are using.
   /// \param referenceMv The reference voltage (IOREF), in millivolts.
   ///   For example, use 3300 for a 3.3 V system or 5000 for a 5 V system.
-  /// \param offsetMv The offset of the current sense signal for the Motoron
-  ///   channel, in millivolts.  This is typically 50.
-  ///   You can calculate this by driving the motor at speed 0, calling
-  ///   getCurrentSense(), and then multiplying by referenceMv/1024.
+  /// \param offset The offset of the raw current sense signal for the Motoron
+  ///   channel.  This is the same measurement that you would put into the
+  ///   Motoron's "Current sense offset" variable using setCurrentSenseOffset(),
+  ///   so see the documentation of that function for more info.
   static uint16_t calculateCurrentLimit(uint32_t milliamps,
-    MotoronCurrentSenseType type, uint16_t referenceMv, uint16_t offsetMv)
+    MotoronCurrentSenseType type, uint16_t referenceMv, uint16_t offset)
   {
-    uint8_t m = (uint8_t)type & 3;
     if (milliamps > 1000000) { milliamps = 1000000; }
-    uint16_t limit = (milliamps / m + offsetMv * 50) * 20 / referenceMv;
+    uint16_t limit = offset + milliamps * 20 / (referenceMv * ((uint8_t)type & 3));
     if (limit > 1000) { limit = 1000; }
     return limit;
   }
