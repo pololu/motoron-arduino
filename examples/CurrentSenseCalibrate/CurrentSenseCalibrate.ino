@@ -1,6 +1,9 @@
 // This example shows how to automatically measure the current
-// sense offsets at startup and load them into the Motoron so that the
-// processed current measurements are more accurate.
+// sense offsets at startup and load them into the Motoron so
+// that the processed current measurements are more accurate.
+//
+// It also uses those current sense offsets to help set current
+// limits.
 
 #include <Motoron.h>
 
@@ -92,6 +95,14 @@ void setup()
   mc.setMaxDeceleration(2, 200);
 
   calibrateCurrent();
+
+  // Set current limits using the offsets we just measured.
+  // The first argument to setCurrentLimit is a current limit
+  // in milliamps.
+  mc.setCurrentLimit(1, mc.calculateCurrentLimit(10000,
+    type, referenceMv, mc.getCurrentSenseOffset(1)));
+  mc.setCurrentLimit(2, mc.calculateCurrentLimit(10000,
+    type, referenceMv, mc.getCurrentSenseOffset(2)));
 }
 
 void printCurrent(uint16_t processed)

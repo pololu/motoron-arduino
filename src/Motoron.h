@@ -1614,6 +1614,8 @@ public:
   ///   channel.  This is the same measurement that you would put into the
   ///   Motoron's "Current sense offset" variable using setCurrentSenseOffset(),
   ///   so see the documentation of that function for more info.
+  ///   The offset is typically 10 for 5 V systems and 15 for 3.3 V systems,
+  ///   (50*1024/referenceMv) but it can vary widely.
   static uint16_t calculateCurrentLimit(uint32_t milliamps,
     MotoronCurrentSenseType type, uint16_t referenceMv, uint16_t offset)
   {
