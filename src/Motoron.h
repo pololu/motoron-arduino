@@ -755,7 +755,7 @@ public:
 
   /// Reads the current limit for the specified motor.
   ///
-  /// This only works for Motorons that have adjustable current limiting.
+  /// This only works for the high-power Motorons.
   ///
   /// For more information, see the "Current limit" variable
   /// in the Motoron user's guide.
@@ -774,12 +774,7 @@ public:
   /// command, so the values returned are all guaranteed to be part of the
   /// same measurement.
   ///
-  /// You can read these same variables using separate commands if you use the
-  /// getCurrentSenseRaw(), getCurrentSenseSpeed(), and
-  /// getCurrentSenseProcessed() functions, but then it is possible that the
-  /// variables might get updated between the separate read commands.
-  ///
-  /// This function only works for Motorons that have current sensing.
+  /// This only works for the high-power Motorons.
   ///
   /// \sa getCurrentSenseRawAndSpeed(), getCurrentSenseProcessedAndSpeed()
   MotoronCurrentSenseReading getCurrentSenseReading(uint8_t motor)
@@ -798,7 +793,7 @@ public:
   ///
   /// The 'processed' member of the returned structure will be 0.
   ///
-  /// This only works for Motorons that have current sensing.
+  /// This only works for the high-power Motorons.
   MotoronCurrentSenseReading getCurrentSenseRawAndSpeed(uint8_t motor)
   {
     uint8_t buffer[4];
@@ -814,7 +809,7 @@ public:
   ///
   /// The 'raw' member of the returned structure will be 0.
   ///
-  /// This only works for Motorons that have current sensing.
+  /// This only works for the high-power Motorons.
   MotoronCurrentSenseReading getCurrentSenseProcessedAndSpeed(uint8_t motor)
   {
     uint8_t buffer[4];
@@ -827,7 +822,7 @@ public:
 
   /// Reads the raw current sense measurement for the specified motor.
   ///
-  /// This only works for Motorons that have current sensing.
+  /// This only works for the high-power Motorons.
   ///
   /// For more information, see the "Current sense raw" variable
   /// in the Motoron user's guide.
@@ -840,7 +835,7 @@ public:
 
   /// Reads the processed current sense reading for the specified motor.
   ///
-  /// This only works for Motorons that have current sensing.
+  /// This only works for the high-power Motorons.
   ///
   /// The units of this reading depend on the logic voltage of the Motoron
   /// and on the specific model of Motoron that you have, and you can use
@@ -862,7 +857,7 @@ public:
 
   /// Reads the current sense offset setting.
   ///
-  /// This only works for Motorons that have current sensing.
+  /// This only works for the high-power Motorons.
   ///
   /// For more information, see the "Current sense offset" variable in the
   /// Motoron user's guide.
@@ -876,7 +871,7 @@ public:
   /// Reads the current sense minimum divisor setting and returns it as a speed
   /// between 0 and 800.
   ///
-  /// This only works for Motorons that have current sensing.
+  /// This only works for the high-power Motorons.
   ///
   /// For more information, see the "Current sense minimum divisor" variable in
   /// the Motoron user's guide.
@@ -1143,7 +1138,7 @@ public:
 
   /// Sets the current limit for the specified motor.
   ///
-  /// This only works for Motorons that have adjustable current limiting.
+  /// This only works for the high-power Motorons.
   ///
   /// The units of the current limit depend on the type of Motoron you have
   /// and the logic voltage of your system.  See the "Current limit" variable
@@ -1158,10 +1153,10 @@ public:
 
   /// Sets the current sense offset setting for the specified motor.
   ///
-  /// This offset is one of the settings that determines how current sense
+  /// This is one of the settings that determines how current sense
   /// readings are processed.  It is supposed to be the value returned by
-  /// getCurrentSenseRaw() when power is supplied to the Motoron and it is
-  /// driving its motor outputs at speed 0.
+  /// getCurrentSenseRaw() when Motor power is supplied to the Motoron and
+  /// it is driving its motor outputs at speed 0.
   ///
   /// The CurrentSenseCalibrate example shows how to measure the current
   /// sense offsets and load them onto the Motoron using this function.
@@ -1171,6 +1166,8 @@ public:
   ///
   /// For more information, see the "Current sense offset" variable in the
   /// Motoron user's guide.
+  ///
+  /// This only works for the high-power Motorons.
   ///
   /// \sa getCurrentSenseOffset()
   void setCurrentSenseOffset(uint8_t motor, uint8_t offset)
@@ -1189,6 +1186,8 @@ public:
   ///
   /// For more information, see the "Current sense minimum divisor" variable in
   /// the Motoron user's guide.
+  ///
+  /// This only works for the high-power Motorons.
   ///
   /// \sa getCurrentSenseMinimumDivisor()
   void setCurrentSenseMinimumDivisor(uint8_t motor, uint16_t speed)
@@ -1620,7 +1619,7 @@ public:
     MotoronCurrentSenseType type, uint16_t referenceMv, uint16_t offset)
   {
     if (milliamps > 1000000) { milliamps = 1000000; }
-    uint16_t limit = offset + milliamps * 20 / (referenceMv * ((uint8_t)type & 3));
+    uint16_t limit = (uint32_t)(offset * 125 + 64) / 128 + milliamps * 20 / (referenceMv * ((uint8_t)type & 3));
     if (limit > 1000) { limit = 1000; }
     return limit;
   }
