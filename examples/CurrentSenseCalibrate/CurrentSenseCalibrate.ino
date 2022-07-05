@@ -1,6 +1,7 @@
-// This example shows how to automatically measure the current
-// sense offsets at startup and load them into the Motoron so
-// that the processed current measurements are more accurate.
+// This example for the Motoron M2S controllers shows how to
+// automatically measure the current sense offsets at startup
+// and load them into the Motoron so that the processed current
+// measurements are more accurate.
 //
 // It also uses those current sense offsets to help set current
 // limits.
