@@ -1619,7 +1619,8 @@ public:
     MotoronCurrentSenseType type, uint16_t referenceMv, uint16_t offset)
   {
     if (milliamps > 1000000) { milliamps = 1000000; }
-    uint16_t limit = (uint32_t)(offset * 125 + 64) / 128 + milliamps * 20 / (referenceMv * ((uint8_t)type & 3));
+    uint16_t limit = (uint32_t)(offset * 125 + 64) / 128 +
+      milliamps * 20 / (referenceMv * ((uint8_t)type & 3));
     if (limit > 1000) { limit = 1000; }
     return limit;
   }
