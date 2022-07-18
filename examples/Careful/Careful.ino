@@ -13,7 +13,11 @@
 // Note: If you want to be even more careful, you might consider
 // reading back all of the settings you care about and verifying
 // they are correct at the end of loop().
-
+//
+// Note: If your Motoron has fewer than three motor channels,
+// you should remove the commands in loop() and setup() that
+// operate on the motors your controller does not have.
+// Otherwise, those commands will cause a protocol error.
 
 #include <Motoron.h>
 
