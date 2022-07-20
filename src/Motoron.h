@@ -25,14 +25,13 @@ extern const PROGMEM uint8_t motoronCrcTable[256];
 
 /// \endcond
 
-// TODO: fix/reorder these names when the real names are decided
 /// Specifies what type of Motoron is being used, for the purposes of current
 /// limit and current sense calculations.
 enum class MotoronCurrentSenseType {
   Motoron18v18 = 0b0001,
   Motoron24v14 = 0b0101,
-  Motoron18v22 = 0b1010,
-  Motoron24v18 = 0b1101,
+  Motoron18v20 = 0b1010,
+  Motoron24v16 = 0b1101,
 };
 
 struct MotoronCurrentSenseReading
