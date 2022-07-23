@@ -1,5 +1,13 @@
 motoronCrcTable	KEYWORD2
 
+MotoronCurrentSenseType	KEYWORD1
+Motoron18v18	KEYWORD2
+Motoron24v14	KEYWORD2
+Motoron18v22	KEYWORD2
+Motoron24v18	KEYWORD2
+
+MotoronCurrentSenseReading	KEYWORD1
+
 MotoronI2C	KEYWORD1
 setBus	KEYWORD2
 setAddress	KEYWORD2
@@ -56,6 +64,14 @@ getStartingSpeedForward	KEYWORD2
 getStartingSpeedReverse	KEYWORD2
 getDirectionChangeDelayForward	KEYWORD2
 getDirectionChangeDelayReverse	KEYWORD2
+getCurrentLimit	KEYWORD2
+getCurrentSenseReading	KEYWORD2
+getCurrentSenseRawAndSpeed	KEYWORD2
+getCurrentSenseProcessedAndSpeed	KEYWORD2
+getCurrentSenseRaw	KEYWORD2
+getCurrentSenseProcessed	KEYWORD2
+getCurrentSenseOffset	KEYWORD2
+getCurrentSenseMinimumDivisor	KEYWORD2
 setVariable	KEYWORD2
 setCommandTimeoutMilliseconds	KEYWORD2
 setErrorResponse	KEYWORD2
@@ -74,6 +90,9 @@ setStartingSpeed	KEYWORD2
 setDirectionChangeDelayForward	KEYWORD2
 setDirectionChangeDelayReverse	KEYWORD2
 setDirectionChangeDelay	KEYWORD2
+setCurrentLimit	KEYWORD2
+setCurrentSenseOffset	KEYWORD2
+setCurrentSenseMinimumDivisor	KEYWORD2
 coastNow	KEYWORD2
 clearMotorFault	KEYWORD2
 clearMotorFaultUnconditional	KEYWORD2
@@ -92,6 +111,8 @@ setBraking	KEYWORD2
 setBrakingNow	KEYWORD2
 resetCommandTimeout	KEYWORD2
 calculateCrc	KEYWORD2
+calculateCurrentLimit	KEYWORD2
+currentSenseUnitsMilliamps	KEYWORD2
 
 MOTORON_CMD_GET_FIRMWARE_VERSION	KEYWORD2
 MOTORON_CMD_SET_PROTOCOL_OPTIONS	KEYWORD2

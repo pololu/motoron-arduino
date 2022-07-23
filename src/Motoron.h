@@ -25,6 +25,22 @@ extern const PROGMEM uint8_t motoronCrcTable[256];
 
 /// \endcond
 
+/// Specifies what type of Motoron is being used, for the purposes of current
+/// limit and current sense calculations.
+enum class MotoronCurrentSenseType {
+  Motoron18v18 = 0b0001,
+  Motoron24v14 = 0b0101,
+  Motoron18v20 = 0b1010,
+  Motoron24v16 = 0b1101,
+};
+
+struct MotoronCurrentSenseReading
+{
+  uint16_t raw;
+  int16_t speed;
+  uint16_t processed;
+};
+
 /// Represents an I2C connection to a Pololu Motoron Motor Controller.
 class MotoronI2C
 {
@@ -736,6 +752,135 @@ public:
     return getVar8(motor, MOTORON_MVAR_DIRECTION_CHANGE_DELAY_REVERSE);
   }
 
+  /// Reads the current limit for the specified motor.
+  ///
+  /// This only works for the high-power Motorons.
+  ///
+  /// For more information, see the "Current limit" variable
+  /// in the Motoron user's guide.
+  ///
+  /// \sa setCurrentLimit()
+  uint16_t getCurrentLimit(uint8_t motor)
+  {
+    return getVar16(motor, MOTORON_MVAR_CURRENT_LIMIT);
+  }
+
+  /// Reads all the results from the last current sense measurement for the
+  /// specified motor.
+  ///
+  /// This function reads the "Current sense raw", "Current sense speed", and
+  /// "Current sense processed" variables from the Motoron using a single
+  /// command, so the values returned are all guaranteed to be part of the
+  /// same measurement.
+  ///
+  /// This only works for the high-power Motorons.
+  ///
+  /// \sa getCurrentSenseRawAndSpeed(), getCurrentSenseProcessedAndSpeed()
+  MotoronCurrentSenseReading getCurrentSenseReading(uint8_t motor)
+  {
+    uint8_t buffer[6];
+    getVariables(motor, MOTORON_MVAR_CURRENT_SENSE_RAW, sizeof(buffer), buffer);
+    MotoronCurrentSenseReading r = {};
+    r.raw = buffer[0] | ((uint16_t)buffer[1] << 8);
+    r.speed = buffer[2] | ((uint16_t)buffer[3] << 8);
+    r.processed = buffer[4] | ((uint16_t)buffer[5] << 8);
+    return r;
+  }
+
+  /// This is like getCurrentSenseReading() but it only reads the raw current
+  /// sense measurement and the speed.
+  ///
+  /// The 'processed' member of the returned structure will be 0.
+  ///
+  /// This only works for the high-power Motorons.
+  MotoronCurrentSenseReading getCurrentSenseRawAndSpeed(uint8_t motor)
+  {
+    uint8_t buffer[4];
+    getVariables(motor, MOTORON_MVAR_CURRENT_SENSE_RAW, sizeof(buffer), buffer);
+    MotoronCurrentSenseReading r = {};
+    r.raw = buffer[0] | ((uint16_t)buffer[1] << 8);
+    r.speed = buffer[2] | ((uint16_t)buffer[3] << 8);
+    return r;
+  }
+
+  /// This is like getCurrentSenseReading() but it only reads the processed
+  /// current sense measurement and the speed.
+  ///
+  /// The 'raw' member of the returned structure will be 0.
+  ///
+  /// This only works for the high-power Motorons.
+  MotoronCurrentSenseReading getCurrentSenseProcessedAndSpeed(uint8_t motor)
+  {
+    uint8_t buffer[4];
+    getVariables(motor, MOTORON_MVAR_CURRENT_SENSE_SPEED, sizeof(buffer), buffer);
+    MotoronCurrentSenseReading r = {};
+    r.speed = buffer[0] | ((uint16_t)buffer[1] << 8);
+    r.processed = buffer[2] | ((uint16_t)buffer[3] << 8);
+    return r;
+  }
+
+  /// Reads the raw current sense measurement for the specified motor.
+  ///
+  /// This only works for the high-power Motorons.
+  ///
+  /// For more information, see the "Current sense raw" variable
+  /// in the Motoron user's guide.
+  ///
+  /// \sa getCurrentSenseReading()
+  uint16_t getCurrentSenseRaw(uint8_t motor)
+  {
+    return getVar16(motor, MOTORON_MVAR_CURRENT_SENSE_RAW);
+  }
+
+  /// Reads the processed current sense reading for the specified motor.
+  ///
+  /// This only works for the high-power Motorons.
+  ///
+  /// The units of this reading depend on the logic voltage of the Motoron
+  /// and on the specific model of Motoron that you have, and you can use
+  /// MotoronI2C::currentSenseUnitsMilliamps() to calculate the units.
+  ///
+  /// The accuracy of this reading can be improved by measuring the current
+  /// sense offset and setting it with setCurrentSenseOffset().
+  /// See the "Current sense processed" variable in the Motoron user's guide for
+  /// or the CurrentSenseCalibrate example for more information.
+  ///
+  /// Note that this reading will be 0xFFFF if an overflow happens during the
+  /// calculation due to very high current.
+  ///
+  /// \sa getCurrentSenseProcessedAndSpeed()
+  uint16_t getCurrentSenseProcessed(uint8_t motor)
+  {
+    return getVar16(motor, MOTORON_MVAR_CURRENT_SENSE_PROCESSED);
+  }
+
+  /// Reads the current sense offset setting.
+  ///
+  /// This only works for the high-power Motorons.
+  ///
+  /// For more information, see the "Current sense offset" variable in the
+  /// Motoron user's guide.
+  ///
+  /// \sa setCurrentSenseOffset()
+  uint8_t getCurrentSenseOffset(uint8_t motor)
+  {
+    return getVar8(motor, MOTORON_MVAR_CURRENT_SENSE_OFFSET);
+  }
+
+  /// Reads the current sense minimum divisor setting and returns it as a speed
+  /// between 0 and 800.
+  ///
+  /// This only works for the high-power Motorons.
+  ///
+  /// For more information, see the "Current sense minimum divisor" variable in
+  /// the Motoron user's guide.
+  ///
+  /// \sa setCurrentSenseMinimumDivisor()
+  uint16_t getCurrentSenseMinimumDivisor(uint8_t motor)
+  {
+    return getVar8(motor, MOTORON_MVAR_CURRENT_SENSE_MINIMUM_DIVISOR) << 2;
+  }
+
   /// Configures the Motoron using a "Set variable" command.
   ///
   /// This library has helper methods to set every variable, so you should
@@ -990,6 +1135,65 @@ public:
     setDirectionChangeDelayReverse(motor, duration);
   }
 
+  /// Sets the current limit for the specified motor.
+  ///
+  /// This only works for the high-power Motorons.
+  ///
+  /// The units of the current limit depend on the type of Motoron you have
+  /// and the logic voltage of your system.  See the "Current limit" variable
+  /// in the Motoron user's guide for more information, or see
+  /// MotoronI2C::calculateCurrentLimit().
+  ///
+  /// \sa getCurrentLimit()
+  void setCurrentLimit(uint8_t motor, uint16_t limit)
+  {
+    setVariable(motor, MOTORON_MVAR_CURRENT_LIMIT, limit);
+  }
+
+  /// Sets the current sense offset setting for the specified motor.
+  ///
+  /// This is one of the settings that determines how current sense
+  /// readings are processed.  It is supposed to be the value returned by
+  /// getCurrentSenseRaw() when Motor power is supplied to the Motoron and
+  /// it is driving its motor outputs at speed 0.
+  ///
+  /// The CurrentSenseCalibrate example shows how to measure the current
+  /// sense offsets and load them onto the Motoron using this function.
+  ///
+  /// If you do not care about measuring motor current, you do not need to
+  /// set this variable.
+  ///
+  /// For more information, see the "Current sense offset" variable in the
+  /// Motoron user's guide.
+  ///
+  /// This only works for the high-power Motorons.
+  ///
+  /// \sa getCurrentSenseOffset()
+  void setCurrentSenseOffset(uint8_t motor, uint8_t offset)
+  {
+    setVariable(motor, MOTORON_MVAR_CURRENT_SENSE_OFFSET, offset);
+  }
+
+  /// Sets the current sense minimum divisor setting for the specified motor,
+  /// given a speed between 0 and 800.
+  ///
+  /// This is one of the settings that determines how current sense
+  /// readings are processed.
+  ///
+  /// If you do not care about measuring motor current, you do not need to
+  /// set this variable.
+  ///
+  /// For more information, see the "Current sense minimum divisor" variable in
+  /// the Motoron user's guide.
+  ///
+  /// This only works for the high-power Motorons.
+  ///
+  /// \sa getCurrentSenseMinimumDivisor()
+  void setCurrentSenseMinimumDivisor(uint8_t motor, uint16_t speed)
+  {
+    setVariable(motor, MOTORON_MVAR_CURRENT_SENSE_MINIMUM_DIVISOR, speed >> 2);
+  }
+
   /// Sends a "Coast now" command to the Motoron, causing all of the motors to
   /// immediately start coasting.
   ///
@@ -1150,7 +1354,12 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
-  /// Sets the target speeds of all three motors at the same time.
+
+  /// Sets the target speeds of all the motors at the same time.
+  ///
+  /// The number of speed arguments you provide to this function must be equal
+  /// to the number of motor channels your Motoron has, or else this command
+  /// might not work.
   ///
   /// This is equivalent to calling setSpeed() once for each motor, but it is
   /// more efficient because all of the speeds are sent in the same command.
@@ -1159,6 +1368,19 @@ public:
   /// user's guide.
   ///
   /// \sa setSpeed(), setAllSpeedsNow(), setAllBufferedSpeeds()
+  void setAllSpeeds(int16_t speed1, int16_t speed2)
+  {
+    uint8_t cmd[] = {
+      MOTORON_CMD_SET_ALL_SPEEDS,
+      (uint8_t)(speed1 & 0x7F),
+      (uint8_t)((speed1 >> 7) & 0x7F),
+      (uint8_t)(speed2 & 0x7F),
+      (uint8_t)((speed2 >> 7) & 0x7F),
+    };
+    sendCommand(sizeof(cmd), cmd);
+  }
+
+  /// An overload of setAllSpeeds() for Motorons with 3 channels.
   void setAllSpeeds(int16_t speed1, int16_t speed2, int16_t speed3)
   {
     uint8_t cmd[] = {
@@ -1173,7 +1395,11 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
-  /// Sets the target and currents speeds of all three motors at the same time.
+  /// Sets the target and current speeds of all the motors at the same time.
+  ///
+  /// The number of speed arguments you provide to this function must be equal
+  /// to the number of motor channels your Motoron has, or else this command
+  /// might not work.
   ///
   /// This is equivalent to calling setSpeedNow() once for each motor, but it is
   /// more efficient because all of the speeds are sent in the same command.
@@ -1182,6 +1408,19 @@ public:
   /// user's guide.
   ///
   /// \sa setSpeed(), setSpeedNow(), setAllSpeeds()
+  void setAllSpeedsNow(int16_t speed1, int16_t speed2)
+  {
+    uint8_t cmd[] = {
+      MOTORON_CMD_SET_ALL_SPEEDS_NOW,
+      (uint8_t)(speed1 & 0x7F),
+      (uint8_t)((speed1 >> 7) & 0x7F),
+      (uint8_t)(speed2 & 0x7F),
+      (uint8_t)((speed2 >> 7) & 0x7F),
+    };
+    sendCommand(sizeof(cmd), cmd);
+  }
+
+  /// An overload of setAllSpeedsNow() for Motorons with 3 channels.
   void setAllSpeedsNow(int16_t speed1, int16_t speed2, int16_t speed3)
   {
     uint8_t cmd[] = {
@@ -1198,6 +1437,10 @@ public:
 
   /// Sets the buffered speeds of all three motors.
   ///
+  /// The number of speed arguments you provide to this function must be equal
+  /// to the number of motor channels your Motoron has, or else this command
+  /// might not work.
+  ///
   /// This command does not immediately cause any change to the motors: it
   /// stores speed for each motor in the Motoron so they can be used by later
   /// commands.
@@ -1207,6 +1450,19 @@ public:
   ///
   /// \sa setSpeed(), setBufferedSpeed(), setAllSpeeds(),
   ///   setAllSpeedsUsingBuffers(), setAllSpeedsNowUsingBuffers()
+  void setAllBufferedSpeeds(int16_t speed1, int16_t speed2)
+  {
+    uint8_t cmd[] = {
+      MOTORON_CMD_SET_ALL_BUFFERED_SPEEDS,
+      (uint8_t)(speed1 & 0x7F),
+      (uint8_t)((speed1 >> 7) & 0x7F),
+      (uint8_t)(speed2 & 0x7F),
+      (uint8_t)((speed2 >> 7) & 0x7F),
+    };
+    sendCommand(sizeof(cmd), cmd);
+  }
+
+  /// An overload of setAllBufferedSpeeds() for Motorons with 3 channels.
   void setAllBufferedSpeeds(int16_t speed1, int16_t speed2, int16_t speed3)
   {
     uint8_t cmd[] = {
@@ -1343,6 +1599,47 @@ public:
       // }
     }
     return crc;
+  }
+
+  /// Calculates a current limit value that can be passed to the Motoron
+  /// using setCurrentLimit().
+  ///
+  /// \param milliamps The desired current limit, in units of mA.
+  /// \param type Specifies what type of Motoron you are using.
+  /// \param referenceMv The reference voltage (IOREF), in millivolts.
+  ///   For example, use 3300 for a 3.3 V system or 5000 for a 5 V system.
+  /// \param offset The offset of the raw current sense signal for the Motoron
+  ///   channel.  This is the same measurement that you would put into the
+  ///   Motoron's "Current sense offset" variable using setCurrentSenseOffset(),
+  ///   so see the documentation of that function for more info.
+  ///   The offset is typically 10 for 5 V systems and 15 for 3.3 V systems,
+  ///   (50*1024/referenceMv) but it can vary widely.
+  static uint16_t calculateCurrentLimit(uint32_t milliamps,
+    MotoronCurrentSenseType type, uint16_t referenceMv, uint16_t offset)
+  {
+    if (milliamps > 1000000) { milliamps = 1000000; }
+    uint16_t limit = (uint32_t)(offset * 125 + 64) / 128 +
+      milliamps * 20 / (referenceMv * ((uint8_t)type & 3));
+    if (limit > 1000) { limit = 1000; }
+    return limit;
+  }
+
+  /// Calculates the units for the Motoron's current sense reading returned by
+  /// getCurrentSenseProcessed(), in milliamps.
+  ///
+  /// To convert a reading from getCurrentSenseProcessed() to milliamps
+  /// multiply it by the value returned from this function using 32-bit
+  /// multiplication.  For example:
+  ///
+  ///     uint32_t ma = (uint32_t)processed * units;
+  ///
+  /// \param type Specifies what type of Motoron you are using.
+  /// \param referenceMv The reference voltage (IOREF), in millivolts.
+  ///   For example, use 3300 for a 3.3 V system or 5000 for a 5 V system.
+  static constexpr uint16_t currentSenseUnitsMilliamps(
+    MotoronCurrentSenseType type, uint16_t referenceMv)
+  {
+    return ((uint32_t)referenceMv * ((uint8_t)type & 3) * 25 / 512);
   }
 
 private:

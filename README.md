@@ -4,8 +4,20 @@
 
 ## Summary
 
-This is a library for the Arduino IDE that helps interface with a
-[Motoron motor controller] ([M3S256] or [M3H256]) using I&sup2;C.
+This is a library for the Arduino IDE that helps interface with
+[Motoron motor controllers][motoron] using I&sup2;C.
+
+It supports the following Motoron shields:
+
+- [Motoron M3S256 Triple Motor Controller Shield for Arduino][M3S256]
+- [Motoron M2S18v18 Dual High-Power Motor Controller Shield for Arduino][M2S18v18]
+- [Motoron M2S24v14 Dual High-Power Motor Controller Shield for Arduino][M2S24v14]
+- [Motoron M2S18v20 Dual High-Power Motor Controller Shield for Arduino][M2S18v20]
+- [Motoron M2S24v16 Dual High-Power Motor Controller Shield for Arduino][M2S24v16]
+
+It also supports these Motoron controllers:
+
+- [Motoron M3H256 Triple Motor Controller for Raspberry Pi][M3H256]
 
 ## Supported platforms
 
@@ -67,22 +79,30 @@ The main class provided by this library is MotoronI2C.
 
 ## Documentation
 
-For complete documentation of this library, see [the motoron-arduino documentation][doc].  If you are already on that page, then click the links in the "Classes" section above.
+For complete documentation of this library, see
+[the motoron-arduino documentation][doc].
+If you are already on that page, then click the links in the "Classes" section above.
 
 ## Command timeout
 
-By default, the Motoron will turn off its motors if it has not received a valid command in the last 1.5 seconds.  You can change the amount of time it
+By default, the Motoron will turn off its motors if it has not received a valid
+command in the last 1.5 seconds.  You can change the amount of time it
 takes for the Motoron to time out using MotoronI2C::setCommandTimeoutMilliseconds()
 or you can disable the feature using
 MotoronI2C::disableCommandTimeout().
 
 ## Version history
 
+* 1.1.0 (2022-07-22): Added support for the M2S shields.
 * 1.0.0 (2022-03-25): Original release.
 
-[Motoron motor controller]: https://www.pololu.com/motoron
+[motoron]: https://pololu.com/motoron
 [M3S256]: https://www.pololu.com/product/5030
 [M3H256]: https://www.pololu.com/product/5033
+[M2S18v18]: https://www.pololu.com/product/5036
+[M2S24v14]: https://www.pololu.com/product/5039
+[M2S18v20]: https://www.pololu.com/product/5042
+[M2S24v16]: https://www.pololu.com/product/5045
 [a-star]: https://www.pololu.com/a-star
 [releases]: https://github.com/pololu/motoron-arduino/releases
 [doc]: https://pololu.github.io/motoron-arduino/

@@ -1,5 +1,5 @@
 // This example sketch provides an interactive utility you can use to set the
-// I2C addresses for a single Motoron controller or a multiple of controllers
+// I2C addresses for a single Motoron controller or multiple controllers
 // connected to the same I2C bus.
 //
 // After uploading this sketch to your Arduino, open the Serial Monitor
@@ -28,8 +28,8 @@
 // devices on your I2C bus that are not Motorons, the commands sent to those
 // devices might be misinterpreted and cause undesired behavior.
 //
-// The "a" and "r" commands in this sketch use the I2C general call address
-// (0), so they might interfere with other devices that use that address, and
+// The "a" and "r" commands use the I2C general call address (0),
+// so they might interfere with other devices that use that address, and
 // they will not work if you disabled the general call address on a Motoron.
 //
 // This sketch expects each command to be terminated with a

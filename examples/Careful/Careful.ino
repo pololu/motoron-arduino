@@ -13,7 +13,11 @@
 // Note: If you want to be even more careful, you might consider
 // reading back all of the settings you care about and verifying
 // they are correct at the end of loop().
-
+//
+// Note: If your Motoron has fewer than three motor channels,
+// you should remove the commands in loop() and setup() that
+// operate on the motors your controller does not have.
+// Otherwise, those commands will cause a protocol error.
 
 #include <Motoron.h>
 
@@ -51,8 +55,7 @@ void setup()
   mc.setErrorMask(errorMask);
 
   // Use a short command timeout of 100 ms: the Motoron will
-  // stop the motors if it does not get a motor control command
-  // for 100 ms.
+  // stop the motors if it does not get a command for 100 ms.
   mc.setCommandTimeoutMilliseconds(100);
 
   // Configure motor 1
@@ -74,7 +77,6 @@ void setup()
   // a more predictable starting point.  This is optional.
   while (mc.getMotorDrivingFlag());
 
-  // Clear any latched motor faults.
   mc.clearMotorFault();
 }
 
