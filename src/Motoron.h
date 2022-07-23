@@ -86,7 +86,7 @@ public:
   /// Sends the "Get firmware version" command to get the device's firmware
   /// product ID and firmware version numbers.
   ///
-  /// For more information, see the "Get firwmare version"
+  /// For more information, see the "Get firmware version"
   /// command in the Motoron user's guide.
   ///
   /// \param productId An optional pointer used to return the product ID.
