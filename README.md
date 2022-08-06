@@ -10,14 +10,12 @@ This is a library for the Arduino IDE that helps interface with
 It supports the following Motoron shields:
 
 - [Motoron M3S256 Triple Motor Controller Shield for Arduino][M3S256]
-- [Motoron M2S18v18 Dual High-Power Motor Controller Shield for Arduino][M2S18v18]
-- [Motoron M2S24v14 Dual High-Power Motor Controller Shield for Arduino][M2S24v14]
-- [Motoron M2S18v20 Dual High-Power Motor Controller Shield for Arduino][M2S18v20]
-- [Motoron M2S24v16 Dual High-Power Motor Controller Shield for Arduino][M2S24v16]
+- [Motoron M2S Dual High-Power Motor Controllers for Arduino][M2S] (M2S18v20, M2S18v18, M2S24v16, M2S24v14)
 
 It also supports these Motoron controllers:
 
 - [Motoron M3H256 Triple Motor Controller for Raspberry Pi][M3H256]
+- [Motoron M2H Dual High-Power Motor Controllers for Raspberry Pi][M2H] (M2H18v20, M2H18v18, M2H24v16, M2H24v14)
 
 ## Supported platforms
 
@@ -93,16 +91,14 @@ MotoronI2C::disableCommandTimeout().
 
 ## Version history
 
-* 1.1.0 (2022-07-22): Added support for the M2S shields.
+* 1.1.0 (2022-07-22): Added support for the [M2S] and [M2H] Motorons.
 * 1.0.0 (2022-03-25): Original release.
 
 [motoron]: https://pololu.com/motoron
-[M3S256]: https://www.pololu.com/product/5030
-[M3H256]: https://www.pololu.com/product/5033
-[M2S18v18]: https://www.pololu.com/product/5036
-[M2S24v14]: https://www.pololu.com/product/5039
-[M2S18v20]: https://www.pololu.com/product/5042
-[M2S24v16]: https://www.pololu.com/product/5045
+[M3S256]: https://www.pololu.com/category/290
+[M3H256]: https://www.pololu.com/category/292
+[M2S]: https://www.pololu.com/category/291
+[M2H]: https://www.pololu.com/category/293
 [a-star]: https://www.pololu.com/a-star
 [releases]: https://github.com/pololu/motoron-arduino/releases
 [doc]: https://pololu.github.io/motoron-arduino/
