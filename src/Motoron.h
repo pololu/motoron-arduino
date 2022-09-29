@@ -41,41 +41,14 @@ struct MotoronCurrentSenseReading
   uint16_t processed;
 };
 
-/// Represents an I2C connection to a Pololu Motoron Motor Controller.
-class MotoronI2C
+/// This is a base class used to represent a connection to a Tic.  This class
+/// provides high-level functions for sending commands to the Tic and reading
+/// data from it.
+///
+/// \sa MotoronSerial, MotoronI2C
+class MotoronBase
 {
 public:
-  /// Creates a new MotoronI2C object to communicate with the Motoron over I2C.
-  ///
-  /// The `address` parameter specifies the 7-bit I2C address to use, and it
-  /// must match the address that the Motoron is configured to use.
-  MotoronI2C(uint8_t address = 16) : address(address) {}
-
-  /// Configures this object to use the specified I2C bus.
-  /// The default bus is Wire, which is typically the first or only I2C bus on
-  /// an Arduino.  To use Wire1 instead, you can write:
-  /// ```{.cpp}
-  /// mc.setBus(&Wire1);
-  /// ```
-  /// \param bus A pointer to a TwoWire object representing the I2C bus to use.
-  void setBus(TwoWire * bus)
-  {
-    this->bus = bus;
-  }
-
-  /// Configures this object to use the specified 7-bit I2C address.
-  /// This must match the address that the Motoron is configured to use.
-  void setAddress(uint8_t address)
-  {
-    this->address = address;
-  }
-
-  /// Returns the 7-bit I2C address that this object is configured to use.
-  uint8_t getAddress()
-  {
-    return address;
-  }
-
   /// Returns 0 if the last communication with the device was successful, or
   /// a non-zero error code if there was an error.
   uint8_t getLastError()
@@ -1642,9 +1615,79 @@ public:
     return ((uint32_t)referenceMv * ((uint8_t)type & 3) * 25 / 512);
   }
 
+protected:
+  /// Zero if the last communication with the device was successful, non-zero
+  /// otherwise.
+  uint8_t lastError = 0;
+
+  /// See setProtocolOptions.
+  uint8_t protocolOptions = defaultProtocolOptions;
+
+private:
+  virtual void sendCommand(uint8_t length, const uint8_t * cmd);
+  virtual void sendCommandCore(uint8_t length, const uint8_t * cmd, bool sendCrc);
+  virtual void readResponse(uint8_t length, uint8_t * response);
+
+  void sendCommandAndReadResponse(uint8_t cmdLength, const uint8_t * cmd,
+    uint8_t responseLength, uint8_t * response)
+  {
+    sendCommand(cmdLength, cmd);
+    if (getLastError())
+    {
+      memset(response, 0, responseLength);
+      return;
+    }
+    readResponse(responseLength, response);
+  }
+
+  const uint8_t defaultProtocolOptions =
+    (1 << MOTORON_PROTOCOL_OPTION_I2C_GENERAL_CALL) |
+    (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS) |
+    (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_RESPONSES);
+
+  const uint16_t defaultErrorMask =
+    (1 << MOTORON_STATUS_FLAG_COMMAND_TIMEOUT) |
+    (1 << MOTORON_STATUS_FLAG_RESET);
+};
+
+/// Represents an I2C connection to a Pololu Motoron Motor Controller.
+class MotoronI2C : public MotoronBase
+{
+public:
+  /// Creates a new MotoronI2C object to communicate with the Motoron over I2C.
+  ///
+  /// The `address` parameter specifies the 7-bit I2C address to use, and it
+  /// must match the address that the Motoron is configured to use.
+  MotoronI2C(uint8_t address = 16) : address(address) {}
+
+  /// Configures this object to use the specified I2C bus.
+  /// The default bus is Wire, which is typically the first or only I2C bus on
+  /// an Arduino.  To use Wire1 instead, you can write:
+  /// ```{.cpp}
+  /// mc.setBus(&Wire1);
+  /// ```
+  /// \param bus A pointer to a TwoWire object representing the I2C bus to use.
+  void setBus(TwoWire * bus)
+  {
+    this->bus = bus;
+  }
+
+  /// Configures this object to use the specified 7-bit I2C address.
+  /// This must match the address that the Motoron is configured to use.
+  void setAddress(uint8_t address)
+  {
+    this->address = address;
+  }
+
+  /// Returns the 7-bit I2C address that this object is configured to use.
+  uint8_t getAddress()
+  {
+    return address;
+  }
+
 private:
 
-  void sendCommandCore(uint8_t length, const uint8_t * cmd, bool sendCrc)
+  void sendCommandCore(uint8_t length, const uint8_t * cmd, bool sendCrc) override
   {
     bus->beginTransmission(address);
     for (uint8_t i = 0; i < length; i++)
@@ -1658,13 +1701,13 @@ private:
     lastError = bus->endTransmission();
   }
 
-  void sendCommand(uint8_t length, const uint8_t * cmd)
+  void sendCommand(uint8_t length, const uint8_t * cmd) override
   {
     bool sendCrc = protocolOptions & (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS);
     sendCommandCore(length, cmd, sendCrc);
   }
 
-  void readResponse(uint8_t length, uint8_t * response)
+  void readResponse(uint8_t length, uint8_t * response) override
   {
     bool crcEnabled = protocolOptions & (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_RESPONSES);
     uint8_t byteCount = bus->requestFrom(address, (uint8_t)(length + crcEnabled));
@@ -1688,29 +1731,6 @@ private:
     }
   }
 
-  void sendCommandAndReadResponse(uint8_t cmdLength, const uint8_t * cmd,
-    uint8_t responseLength, uint8_t * response)
-  {
-    sendCommand(cmdLength, cmd);
-    if (getLastError())
-    {
-      memset(response, 0, responseLength);
-      return;
-    }
-    readResponse(responseLength, response);
-  }
-
-  const uint8_t defaultProtocolOptions =
-    (1 << MOTORON_PROTOCOL_OPTION_I2C_GENERAL_CALL) |
-    (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS) |
-    (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_RESPONSES);
-
-  const uint16_t defaultErrorMask =
-    (1 << MOTORON_STATUS_FLAG_COMMAND_TIMEOUT) |
-    (1 << MOTORON_STATUS_FLAG_RESET);
-
   TwoWire * bus = &Wire;
   uint8_t address;
-  uint8_t lastError = 0;
-  uint8_t protocolOptions = defaultProtocolOptions;
 };
