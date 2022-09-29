@@ -57,7 +57,7 @@ public:
   /// ```{.cpp}
   /// mc.setBus(&Wire1);
   /// ```
-  /// \param bus A pointer to a TwoWire object reoresenting the I2C bus to use.
+  /// \param bus A pointer to a TwoWire object representing the I2C bus to use.
   void setBus(TwoWire * bus)
   {
     this->bus = bus;
@@ -1435,7 +1435,7 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
-  /// Sets the buffered speeds of all three motors.
+  /// Sets the buffered speeds of all the motors.
   ///
   /// The number of speed arguments you provide to this function must be equal
   /// to the number of motor channels your Motoron has, or else this command

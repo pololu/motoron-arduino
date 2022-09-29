@@ -19,7 +19,7 @@ const MotoronCurrentSenseType type = MotoronCurrentSenseType::Motoron18v18;
 
 // Minimum allowed VIN voltage.  You can raise this to be closer
 // to your power supply's expected voltage.
-const uint16_t minVinVoltageMv = 4500;
+const uint16_t minVinVoltageMv = 6500;
 
 const uint16_t units = mc.currentSenseUnitsMilliamps(type, referenceMv);
 
@@ -46,7 +46,6 @@ void calibrateCurrent()
     {
       lastTimeConditionsNotMet = millis();
       sampleCount = 0;
-      memset(totals, 0, sizeof(totals));
       totals[0] = totals[1] = 0;
     }
 
@@ -54,7 +53,7 @@ void calibrateCurrent()
     {
       totals[0] += mc.getCurrentSenseRaw(1);
       totals[1] += mc.getCurrentSenseRaw(2);
-      if (sampleCount++ == desiredSampleCount) { break; }
+      if (++sampleCount == desiredSampleCount) { break; }
     }
   }
 
@@ -98,7 +97,7 @@ void setup()
   calibrateCurrent();
 
   // Set current limits using the offsets we just measured.
-  // The first argument to setCurrentLimit is a current limit
+  // The first argument to calculateCurrentLimit is a current limit
   // in milliamps.
   mc.setCurrentLimit(1, mc.calculateCurrentLimit(10000,
     type, referenceMv, mc.getCurrentSenseOffset(1)));
