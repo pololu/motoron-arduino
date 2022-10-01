@@ -49,6 +49,12 @@ struct MotoronCurrentSenseReading
 class MotoronBase
 {
 public:
+  MotoronBase()
+  {
+    lastError = 0;
+    protocolOptions = defaultProtocolOptions;
+  }
+
   /// Returns 0 if the last communication with the device was successful, or
   /// a non-zero error code if there was an error.
   uint8_t getLastError()
@@ -1554,9 +1560,10 @@ public:
   /// command or response.  Most users will not need to use this, since most
   /// methods in this library automatically append a CRC byte or check
   /// received CRC bytes when appropriate.
-  static uint8_t calculateCrc(uint8_t length, const uint8_t * buffer)
+  static uint8_t calculateCrc(uint8_t length, const uint8_t * buffer,
+    uint8_t init = 0)
   {
-    uint8_t crc = 0;
+    uint8_t crc = init;
     for (uint8_t i = 0; i < length; i++)
     {
       crc = pgm_read_byte(&motoronCrcTable[crc ^ buffer[i]]);
@@ -1618,15 +1625,21 @@ public:
 protected:
   /// Zero if the last communication with the device was successful, non-zero
   /// otherwise.
-  uint8_t lastError = 0;
+  uint8_t lastError;
 
   /// See setProtocolOptions.
-  uint8_t protocolOptions = defaultProtocolOptions;
+  uint8_t protocolOptions;
 
 private:
-  virtual void sendCommand(uint8_t length, const uint8_t * cmd);
-  virtual void sendCommandCore(uint8_t length, const uint8_t * cmd, bool sendCrc);
-  virtual void readResponse(uint8_t length, uint8_t * response);
+
+  void sendCommand(uint8_t length, const uint8_t * cmd)
+  {
+    bool sendCrc = protocolOptions & (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS);
+    sendCommandCore(length, cmd, sendCrc);
+  }
+
+  virtual void sendCommandCore(uint8_t length, const uint8_t * cmd, bool sendCrc) = 0;
+  virtual void readResponse(uint8_t length, uint8_t * response) = 0;
 
   void sendCommandAndReadResponse(uint8_t cmdLength, const uint8_t * cmd,
     uint8_t responseLength, uint8_t * response)
@@ -1650,7 +1663,7 @@ private:
     (1 << MOTORON_STATUS_FLAG_RESET);
 };
 
-/// Represents an I2C connection to a Pololu Motoron Motor Controller.
+/// Represents an I2C connection to a Motoron Motor Controller.
 class MotoronI2C : public MotoronBase
 {
 public:
@@ -1672,6 +1685,13 @@ public:
     this->bus = bus;
   }
 
+  /// Returns a pointer to the I2C bus that this object is configured to
+  /// use.
+  TwoWire * getBus()
+  {
+    return this->bus;
+  }
+
   /// Configures this object to use the specified 7-bit I2C address.
   /// This must match the address that the Motoron is configured to use.
   void setAddress(uint8_t address)
@@ -1686,6 +1706,8 @@ public:
   }
 
 private:
+  TwoWire * bus = &Wire;
+  uint8_t address;
 
   void sendCommandCore(uint8_t length, const uint8_t * cmd, bool sendCrc) override
   {
@@ -1699,12 +1721,6 @@ private:
       bus->write(calculateCrc(length, cmd));
     }
     lastError = bus->endTransmission();
-  }
-
-  void sendCommand(uint8_t length, const uint8_t * cmd) override
-  {
-    bool sendCrc = protocolOptions & (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS);
-    sendCommandCore(length, cmd, sendCrc);
   }
 
   void readResponse(uint8_t length, uint8_t * response) override
@@ -1730,7 +1746,152 @@ private:
       return;
     }
   }
+};
 
-  TwoWire * bus = &Wire;
-  uint8_t address;
+/// Represents a serial connection to a Motoron.
+class MotoronSerial : public MotoronBase
+{
+public:
+  /// Creates a new MotoronSerial object.
+  ///
+  /// The `deviceNumber` argument is optional.  If it is omitted or 255, the
+  /// MotoronSerial object will use the compact protocol.  If it is a number
+  /// between 0 and 127, the MotoronSerial object will use the Pololu protocol,
+  /// and the argument must match the address that the
+  /// Motoron is configured to use.
+  ///
+  /// After using this constructor, you must call setPort() to specify which
+  /// serial port to use.
+  MotoronSerial(uint8_t deviceNumber = 255) :
+    deviceNumber(deviceNumber)
+  {
+  }
+
+  /// Alternative constructor that allows you to specify a serial port,
+  /// so you do not need to call setPort().
+  MotoronSerial(Stream & port, uint8_t deviceNumber = 255) :
+    port(&port),
+    deviceNumber(deviceNumber)
+  {
+  }
+
+  /// Configures this object to use the specified serial port object.
+  ///
+  /// If SERIAL_PORT_HARDWARE_OPEN is defined for your board, it is generally
+  /// a good choice here.  For example:
+  /// ```{.cpp}
+  /// mc.setPort(&SERIAL_PORT_HARDWARE_OPEN);
+  /// ```
+  void setPort(Stream * port)
+  {
+    this->port = port;
+  }
+
+  /// Returns a pointer to the serial port that this object is configured to
+  /// use.
+  Stream * getPort()
+  {
+    return port;
+  }
+
+  /// Configures this object to use the specified device number.
+  ///
+  /// If the argument is 255, the
+  /// MotoronSerial object will use the compact protocol.  If it is a number
+  /// between 0 and 127, the MotoronSerial object will use the Pololu protocol,
+  /// and the argument must match the address that the
+  /// Motoron is configured to use.
+  void setDeviceNumber(uint8_t deviceNumber)
+  {
+    this->deviceNumber = deviceNumber;
+  }
+
+  /// Gets the serial device number this object is configured to use.
+  uint8_t getDeviceNumber()
+  {
+    return deviceNumber;
+  }
+
+private:
+  Stream * port = nullptr;
+  uint8_t deviceNumber = 255;
+
+  void sendCommandCore(uint8_t length, const uint8_t * cmd, bool sendCrc) override
+  {
+    if (port == nullptr) { lastError = 52; return; }
+
+    if (deviceNumber == 255)
+    {
+      port->write(cmd, length);
+      if (sendCrc)
+      {
+        port->write(calculateCrc(length, cmd));
+      }
+    }
+    else
+    {
+      uint8_t header[3] = {
+        0xAA,
+        (uint8_t)(deviceNumber & 0x7F),
+        (uint8_t)(cmd[0] & 0x7F),
+      };
+      port->write(header, sizeof(header));
+      port->write(cmd + 1, length - 1);
+      if (sendCrc)
+      {
+        uint8_t crc = calculateCrc(sizeof(header), header);
+        crc = calculateCrc(length - 1, cmd + 1, crc);
+        port->write(crc);
+      }
+    }
+    lastError = 0;
+  }
+
+  void readResponse(uint8_t length, uint8_t * response) override
+  {
+    if (port == nullptr) { lastError = 52; return; }
+
+    size_t byteCount = port->readBytes(response, length);
+    if (byteCount != length)
+    {
+      lastError = 50;
+      memset(response, 0, length);
+      return;
+    }
+
+    bool crcEnabled = protocolOptions & (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_RESPONSES);
+    if (crcEnabled)
+    {
+      uint8_t crc = 0;
+      if (port->readBytes(&crc, 1) != 1)
+      {
+        lastError = 49;
+        return;
+      }
+
+      if (crc != calculateCrc(length, response))
+      {
+        lastError = 51;
+
+        // tmphax
+        Serial.print(F("RCRC [ "));
+        for (uint8_t i = 0; i < length; i++)
+        {
+          Serial.print(response[i], HEX);
+          Serial.print(' ');
+        }
+        Serial.print(']');
+        Serial.print(' ');
+        Serial.print(crc, HEX);
+        Serial.print(' ');
+        Serial.println(calculateCrc(length, response, 0), HEX);
+        Serial.print(' ');
+        Serial.println(calculateCrc(length, response, 0), HEX);
+
+        return;
+      }
+    }
+    lastError = 0;
+  }
+
 };
