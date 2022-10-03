@@ -292,6 +292,7 @@ public:
   {
     uint8_t cmd = MOTORON_CMD_RESET;
     sendCommandCore(1, &cmd, true);
+    flushTransmission();
     protocolOptions = defaultProtocolOptions;
   }
 
@@ -1639,6 +1640,7 @@ private:
   }
 
   virtual void sendCommandCore(uint8_t length, const uint8_t * cmd, bool sendCrc) = 0;
+  virtual void flushTransmission() = 0;
   virtual void readResponse(uint8_t length, uint8_t * response) = 0;
 
   void sendCommandAndReadResponse(uint8_t cmdLength, const uint8_t * cmd,
@@ -1722,6 +1724,8 @@ private:
     }
     lastError = bus->endTransmission();
   }
+
+  void flushTransmission() { }
 
   void readResponse(uint8_t length, uint8_t * response) override
   {
@@ -1847,9 +1851,16 @@ private:
     lastError = 0;
   }
 
+  void flushTransmission()
+  {
+    port->flush();
+  }
+
   void readResponse(uint8_t length, uint8_t * response) override
   {
     if (port == nullptr) { lastError = 52; return; }
+
+    port->flush();
 
     size_t byteCount = port->readBytes(response, length);
     if (byteCount != length)
