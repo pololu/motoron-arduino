@@ -250,18 +250,37 @@ public:
     delay(6);
   }
 
-  /// Writes to the EEPROM device number, changing it to the specified value.
+  /// Writes to the device number stored in EEPROM, changing it to the
+  /// specified value.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
   /// EEPROM memory of the Motoron’s microcontroller is only rated for
   /// 100,000 erase/write cycles.**
   ///
   /// For more information, see the "Write EEPROM" command in the
-  /// Motoron user's guide.  Also, see the WriteEEPROM example that comes with
-  /// this library for an example of how to use this method.
+  /// Motoron user's guide.  Also, see the SetI2CAddresses example that comes
+  /// with this library for an example of how to use this method.
   void writeEepromDeviceNumber(uint8_t number)
   {
     writeEeprom(MOTORON_SETTING_DEVICE_NUMBER, number);
+  }
+
+  /// Writes to the baud rate stored in EEPROM, changing it to the
+  /// specified value.
+  ///
+  /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
+  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// 100,000 erase/write cycles.**
+  ///
+  /// For more information, see the "Write EEPROM" command in the
+  /// Motoron user's guide.
+  void writeEepromBaudRate(uint32_t baud)
+  {
+    if (baud < 245) { baud = 245; }
+    uint16_t baud_divider = (16000000 + (baud >> 1)) / baud;
+    writeEeprom(MOTORON_SETTING_BAUD_DIVIDER + 0, baud_divider & 0xFF);
+    if (getLastError()) { return; }
+    writeEeprom(MOTORON_SETTING_BAUD_DIVIDER + 1, baud_divider >> 8 & 0xFF);
   }
 
   /// Sends a "Reinitialize" command to the Motoron, which resets most of the
@@ -1884,22 +1903,6 @@ private:
       if (crc != calculateCrc(length, response))
       {
         lastError = 51;
-
-        // tmphax
-        Serial.print(F("RCRC [ "));
-        for (uint8_t i = 0; i < length; i++)
-        {
-          Serial.print(response[i], HEX);
-          Serial.print(' ');
-        }
-        Serial.print(']');
-        Serial.print(' ');
-        Serial.print(crc, HEX);
-        Serial.print(' ');
-        Serial.println(calculateCrc(length, response, 0), HEX);
-        Serial.print(' ');
-        Serial.println(calculateCrc(length, response, 0), HEX);
-
         return;
       }
     }
