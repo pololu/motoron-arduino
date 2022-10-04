@@ -246,6 +246,7 @@ public:
     cmd[5] = cmd[2] ^ 0x7F;
     cmd[6] = cmd[3] ^ 0x7F;
     sendCommand(sizeof(cmd), cmd);
+    flushTransmission();
     delay(6);
   }
 
