@@ -1773,6 +1773,16 @@ private:
 };
 
 /// Represents a serial connection to a Motoron.
+///
+/// Note that many of the functions in this class have the possibility of
+/// returning long before the command has actually been sent to the Motoron.
+/// In particular, this is true of any command that writes bytes to the Motoron
+/// without reading a response, except reset(), writeEeprom(),
+/// writeEepromDeviceNumber(), and writeEepromBaudRate().  If it is important
+/// to ensure that the bytes have been sent, call the flush() function on the
+/// underlying serial port object.  For example:
+///
+///     mc.getPort()->flush();
 class MotoronSerial : public MotoronBase
 {
 public:
