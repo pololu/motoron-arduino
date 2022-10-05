@@ -13,8 +13,8 @@ MotoronI2C mc;
 // ADC reference voltage: change to 3300 if using a 3.3 V Arduino.
 const uint16_t referenceMv = 5000;
 
-// Specifies what type of Motoron you are using, which is needed for converting
-// current sense readings to milliamps.
+// Specifies what type of Motoron you are using, which is needed
+// for converting current sense readings to milliamps.
 const MotoronCurrentSenseType type = MotoronCurrentSenseType::Motoron18v18;
 
 // Minimum allowed VIN voltage.  You can raise this to be closer
@@ -97,8 +97,8 @@ void setup()
   calibrateCurrent();
 
   // Set current limits using the offsets we just measured.
-  // The first argument to calculateCurrentLimit is a current limit
-  // in milliamps.
+  // The first argument to calculateCurrentLimit is a
+  // current limit in milliamps.
   mc.setCurrentLimit(1, mc.calculateCurrentLimit(10000,
     type, referenceMv, mc.getCurrentSenseOffset(1)));
   mc.setCurrentLimit(2, mc.calculateCurrentLimit(10000,

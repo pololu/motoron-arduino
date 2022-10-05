@@ -1,6 +1,7 @@
 // This example shows how to control the Motoron Motor Controller
-// if you want your system to just keep working, ignoring or
-// automatically recovering from errors as much as possible.
+// using I2C if you want your system to just keep working,
+// ignoring or automatically recovering from errors as much as
+// possible.
 //
 // The motors will stop but automatically recover if:
 // - Motor power (VIN) is interrupted

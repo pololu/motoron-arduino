@@ -1,5 +1,5 @@
 // This example shows a simple way to control multiple
-// Motoron Motor Controllers.
+// Motoron Motor Controllers using I2C.
 //
 // The motors will stop but automatically recover if:
 // - Motor power (VIN) is interrupted, or

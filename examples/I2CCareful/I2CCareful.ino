@@ -1,6 +1,6 @@
 // This example shows how to control the Motoron Motor Controller
-// if you want to shut down the motors whenever any problems are
-// detected.
+// using I2C if you want to shut down the motors whenever any
+// problems are detected.
 //
 // The motors will stop until you power cycle or reset your
 // Arduino if:
