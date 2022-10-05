@@ -1883,6 +1883,7 @@ private:
 
   void flushTransmission()
   {
+    if (port == nullptr) { return; }
     port->flush();
   }
 
