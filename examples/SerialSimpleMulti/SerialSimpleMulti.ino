@@ -1,39 +1,49 @@
-// This example shows a simple way to control multiple
-// Motoron Motor Controllers using I2C.
+// This example shows a simple way to control multiple Motoron Motor Controllers
+// using serial.
 //
 // The motors will stop but automatically recover if:
 // - Motor power (VIN) is interrupted, or
 // - A temporary motor fault occurs, or
 // - A command timeout occurs.
 //
-// The motors will stop until you power cycle or reset your
-// Arduino if:
+// The motors will stop until you power cycle or reset your Arduino if:
 // - The Motoron experiences a reset.
 //
-// If a latched motor fault occurs, the motors
-// experiencing the fault will stop until you power cycle motor
-// power (VIN) or cause the motors to coast.
+// If a latched motor fault occurs, the motors experiencing the fault will stop
+// until you power cycle motor power (VIN) or cause the motors to coast.
 
 #include <Motoron.h>
 
-// This code creates an object for each Motoron controller.
-// The number passed as the first argument to each constructor
-// below should be the 7-bit I2C address of the controller.
+// On boards with a hardware serial port available for use, use
+// that port to communicate with the Motoron. For other boards,
+// create a SoftwareSerial object using pin 10 to receive (RX)
+// and pin 11 to transmit (TX).
+#ifdef SERIAL_PORT_HARDWARE_OPEN
+#define mcSerial SERIAL_PORT_HARDWARE_OPEN
+#else
+#include <SoftwareSerial.h>
+SoftwareSerial mcSerial(10, 11);
+#endif
+
+// This code creates an object for each Motoron controller.  The number passed
+// as the first argument to each constructor below should be the device number
+// of the controller.
 //
-// You should use the I2CSetAddresses sketch to
-// assign a unique I2C address to each Motoron, and then
-// modify the list below to match your setup.
-MotoronI2C mc1(17);
-MotoronI2C mc2(18);
-MotoronI2C mc3(19);
-MotoronI2C mc4(20);
+// You should use the SerialSetup sketch to assign a unique device number to
+// each Motoron, and then modify the list below to match your setup.
+MotoronSerial mc1(17);
+MotoronSerial mc2(18);
+MotoronSerial mc3(19);
+MotoronSerial mc4(20);
 
 // You can call functions directly on each of the objects
 // created above (mc1, mc2, etc.) but if you want to write
 // reusable code, the function below shows how to do that
 // using references, a feature of the C++ language.
-void setupMotoron(MotoronI2C & mc)
+void setupMotoron(MotoronSerial & mc)
 {
+  mc.setPort(&mcSerial);
+
   mc.reinitialize();
   mc.disableCrc();
 
@@ -51,7 +61,7 @@ void setupMotoron(MotoronI2C & mc)
 
 void setup()
 {
-  Wire.begin();
+  mcSerial.begin(9600);
 
   setupMotoron(mc1);
   setupMotoron(mc2);

@@ -258,7 +258,7 @@ public:
   /// 100,000 erase/write cycles.**
   ///
   /// For more information, see the "Write EEPROM" command in the
-  /// Motoron user's guide.  Also, see the SetI2CAddresses example that comes
+  /// Motoron user's guide.  Also, see the I2CSetAddresses example that comes
   /// with this library for an example of how to use this method.
   void writeEepromDeviceNumber(uint8_t number)
   {
