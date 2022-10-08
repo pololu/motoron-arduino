@@ -62,6 +62,7 @@ void setupMotoron(MotoronSerial & mc)
 void setup()
 {
   mcSerial.begin(9600);
+  mcSerial.setTimeout(20);
 
   setupMotoron(mc1);
   setupMotoron(mc2);

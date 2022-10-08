@@ -57,6 +57,7 @@ void motorsInit()
 void setup()
 {
   mcSerial.begin(9600);
+  mcSerial.setTimeout(20);
   mc.setPort(&mcSerial);
 
   mc.reinitialize();
