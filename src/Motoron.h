@@ -461,6 +461,15 @@ public:
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_NO_POWER_LATCHED);
   }
 
+  /// Returns the "Serial error" bit from getStatusFlags().
+  ///
+  /// For more information, see the "Status flags" variable in the Motoron
+  /// user's guide.
+  bool getSerialErrorFlag()
+  {
+    return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_SERIAL_ERROR);
+  }
+
   /// Returns the "Reset" bit from getStatusFlags().
   ///
   /// This bit is set to 1 when the Motoron powers on, its processor is
