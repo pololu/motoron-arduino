@@ -463,6 +463,9 @@ public:
 
   /// Returns the "Serial error" bit from getStatusFlags().
   ///
+  /// This bit is only relevant for the Motoron controllers that use
+  /// serial (UART), not I2C.
+  ///
   /// For more information, see the "Status flags" variable in the Motoron
   /// user's guide.
   ///
@@ -536,7 +539,7 @@ public:
 
   /// Returns the "Serial error flags" variable.
   ///
-  /// Every time the Motoron sets the serial error bit in the status flags
+  /// Every time the Motoron sets the "Serial error" bit in the status flags
   /// register (see getSerialErrorFlag()) it also sets one of the bits in this
   /// variable to indicate the cause of the error.
   ///
@@ -547,6 +550,9 @@ public:
   /// - MOTORON_SERIAL_ERROR_FLAG_NOISE
   /// - MOTORON_SERIAL_ERROR_FLAG_HARDWARE_OVERRUN
   /// - MOTORON_SERIAL_ERROR_FLAG_SOFTWARE_OVERRUN
+  ///
+  /// This bit is only relevant for the Motoron controllers that use
+  /// serial (UART), not I2C.
   ///
   /// For more information, see the "Serial error flags" variable in the Motoron
   /// user's guide.
