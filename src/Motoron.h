@@ -365,7 +365,7 @@ public:
 
   /// Reads the "Status flags" variable from the Motoron.
   ///
-  /// The bits in this variable are defined by the MOTORON_STATUS_FLAGS_*
+  /// The bits in this variable are defined by the MOTORON_STATUS_FLAG_*
   /// macros:
   ///
   /// - MOTORON_STATUS_FLAG_PROTOCOL_ERROR
@@ -465,6 +465,9 @@ public:
   ///
   /// For more information, see the "Status flags" variable in the Motoron
   /// user's guide.
+  ///
+  /// If this flag is set, you might consider calling
+  /// getSerialErrorFlags() to get details about what serial error happened.
   bool getSerialErrorFlag()
   {
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_SERIAL_ERROR);
@@ -529,6 +532,29 @@ public:
   bool getMotorDrivingFlag()
   {
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_MOTOR_DRIVING);
+  }
+
+  /// Returns the "Serial error flags" variable.
+  ///
+  /// Every time the Motoron sets the serial error bit in the status flags
+  /// register (see getSerialErrorFlag()) it also sets one of the bits in this
+  /// variable to indicate the cause of the error.
+  ///
+  /// The bits in this variable are defined by the MOTORON_SERIAL_ERROR_FLAG_*
+  /// macros:
+  ///
+  /// - MOTORON_SERIAL_ERROR_FLAG_FRAMING
+  /// - MOTORON_SERIAL_ERROR_FLAG_NOISE
+  /// - MOTORON_SERIAL_ERROR_FLAG_HARDWARE_OVERRUN
+  /// - MOTORON_SERIAL_ERROR_FLAG_SOFTWARE_OVERRUN
+  ///
+  /// For more information, see the "Serial error flags" variable in the Motoron
+  /// user's guide.
+  ///
+  /// \sa clearSerialErrorFlags()
+  uint8_t getSerialErrorFlags()
+  {
+    return getVar8(0, MOTORON_VAR_SERIAL_ERROR_FLAGS);
   }
 
   /// Reads voltage on the Motoron's VIN pin, in raw device units.
@@ -978,6 +1004,19 @@ public:
   void disableCommandTimeout()
   {
     setErrorMask(defaultErrorMask & ~(1 << MOTORON_STATUS_FLAG_COMMAND_TIMEOUT));
+  }
+
+  /// Sends a "Set variable" command that clears the specified flags in
+  /// getSerialErrorFlags().
+  ///
+  /// For each bit in the flags argument that is 1, this command clears the
+  /// corresponding bit in the "Serial error flags" variable, setting it to 0.
+  ///
+  /// For more information, see the "Serial error flags" variable in the
+  /// Motoron user's guide.
+  void clearSerialErrorFlags(uint8_t flags)
+  {
+    setVariable(0, MOTORON_VAR_SERIAL_ERROR_FLAGS, ~(uint16_t)flags & 0x3FFF);
   }
 
   /// Sets the PWM mode for the specified motor.
