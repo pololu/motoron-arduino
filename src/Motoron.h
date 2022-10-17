@@ -276,7 +276,7 @@ public:
   /// Motoron user's guide.
   void writeEepromBaudRate(uint32_t baud)
   {
-    if (baud < 245) { baud = 245; }
+    if (baud < MOTORON_MIN_BAUD_RATE) { baud = MOTORON_MIN_BAUD_RATE; }
     uint16_t baud_divider = (16000000 + (baud >> 1)) / baud;
     writeEeprom(MOTORON_SETTING_BAUD_DIVIDER + 0, baud_divider & 0xFF);
     if (getLastError()) { return; }

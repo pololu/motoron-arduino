@@ -3,10 +3,9 @@
 // connected to the same I2C bus.
 //
 // After uploading this sketch to your Arduino, open the Serial Monitor
-// (from the Tools menu of the Arduino IDE).
-//
-// The top of the serial monitor contains a box where you can type commands for
-// this sketch and send them to this sketch by clicking the "Send" button.
+// (from the Tools menu of the Arduino IDE).  The top of the serial monitor
+// contains a box where you can type commands and send them to
+// this sketch by pressing Ctrl + Enter.
 //
 // To assign an I2C address to a Motoron, send "a" followed by the address
 // (in decimal) while the JMP1 pin of the Motoron you wish to change is
@@ -32,10 +31,9 @@
 // so they might interfere with other devices that use that address, and
 // they will not work if you disabled the general call address on a Motoron.
 //
-// This sketch expects each command to be terminated with a
-// line-ending character ('\r' or '\n').  The serial monitor
-// automatically sends a line-ending character when you click
-// the Send button or press Enter.
+// This sketch expects each command to be terminated with a line-ending
+// character ('\r' or '\n').  The serial monitor automatically sends a
+// line-ending character when you send a message.
 
 #include <Motoron.h>
 
