@@ -229,6 +229,8 @@ public:
 
   /// Writes a value to one byte in the Motoron's EEPROM memory.
   ///
+  /// This command only has an effect if JMP1 is shorted to GND.
+  ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
   /// EEPROM memory of the Motoron’s microcontroller is only rated for
   /// 100,000 erase/write cycles.**
@@ -250,8 +252,23 @@ public:
     delay(6);
   }
 
+  /// Writes a 2-byte value in the Motoron's EEPROM memory.
+  ///
+  /// This command only has an effect if JMP1 is shorted to GND.
+  ///
+  /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
+  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// 100,000 erase/write cycles.**
+  void writeEeprom16(uint8_t offset, uint16_t value)
+  {
+    writeEeprom(offset + 0, value & 0xFF);
+    writeEeprom(offset + 1, value >> 8 & 0xFF);
+  }
+
   /// Writes to the device number stored in EEPROM, changing it to the
   /// specified value.
+  ///
+  /// This command only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
   /// EEPROM memory of the Motoron’s microcontroller is only rated for
@@ -260,27 +277,73 @@ public:
   /// For more information, see the "Write EEPROM" command in the
   /// Motoron user's guide.  Also, see the I2CSetAddresses example that comes
   /// with this library for an example of how to use this method.
-  void writeEepromDeviceNumber(uint8_t number)
+  void writeEepromDeviceNumber(uint16_t number)
   {
-    writeEeprom(MOTORON_SETTING_DEVICE_NUMBER, number);
+    writeEeprom16(MOTORON_SETTING_DEVICE_NUMBER, number);
   }
 
-  /// Writes to the baud rate stored in EEPROM, changing it to the
-  /// specified value.
+  /// Writes to the alternative device number stored in EEPROM, changing it to
+  /// the specified value.
+  ///
+  /// This function is only useful on Motorons with a serial interface,
+  /// and only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
   /// EEPROM memory of the Motoron’s microcontroller is only rated for
   /// 100,000 erase/write cycles.**
   ///
-  /// For more information, see the "Write EEPROM" command in the
-  /// Motoron user's guide.
+  /// \sa writeEepromDisableAlternativeDeviceNumber()
+  void writeEepromAlternativeDeviceNumber(uint16_t number)
+  {
+    writeEeprom(MOTORON_SETTING_ALTERNATIVE_DEVICE_NUMBER, (number & 0x7F) | 0x80);
+    writeEeprom(MOTORON_SETTING_ALTERNATIVE_DEVICE_NUMBER + 1, number >> 7 & 0x7F);
+  }
+
+  // TODO: writeEepromDisableAlternativeDeviceNumber
+
+  /// Writes to the serial options byte stored in EEPROM, changing it to
+  /// the specified value.
+  ///
+  /// The bits in this byte are defined by the MOTORON_SERIAL_OPTION_* macros.
+  ///
+  /// This function is only useful on Motorons with a serial interface,
+  /// and only has an effect if JMP1 is shorted to GND.
+  ///
+  /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
+  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// 100,000 erase/write cycles.**
+  void writeEepromSerialOptions(uint8_t options)
+  {
+    writeEeprom(MOTORON_SETTING_SERIAL_OPTIONS, options);
+  }
+
+  /// Writes to the baud rate stored in EEPROM, changing it to the
+  /// specified value.
+  ///
+  /// This function is only useful on Motorons with a serial interface,
+  /// and only has an effect if JMP1 is shorted to GND.
+  ///
+  /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
+  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// 100,000 erase/write cycles.**
   void writeEepromBaudRate(uint32_t baud)
   {
     if (baud < MOTORON_MIN_BAUD_RATE) { baud = MOTORON_MIN_BAUD_RATE; }
-    uint16_t baud_divider = (16000000 + (baud >> 1)) / baud;
-    writeEeprom(MOTORON_SETTING_BAUD_DIVIDER + 0, baud_divider & 0xFF);
-    if (getLastError()) { return; }
-    writeEeprom(MOTORON_SETTING_BAUD_DIVIDER + 1, baud_divider >> 8 & 0xFF);
+    writeEeprom16(MOTORON_SETTING_BAUD_DIVIDER, (16000000 + (baud >> 1)) / baud);
+  }
+
+  /// Writes to the serial response delay setting stored in EEPROM, changing
+  /// it to the specified value, in units of microseconds.
+  ///
+  /// This function is only useful on Motorons with a serial interface,
+  /// and only has an effect if JMP1 is shorted to GND.
+  ///
+  /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
+  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// 100,000 erase/write cycles.**
+  void writeEepromResponseDelay(uint8_t delay)
+  {
+    writeEeprom(MOTORON_SETTING_RESPONSE_DELAY, delay);
   }
 
   /// Sends a "Reinitialize" command to the Motoron, which resets most of the
@@ -1747,7 +1810,7 @@ public:
   ///
   /// The `address` parameter specifies the 7-bit I2C address to use, and it
   /// must match the address that the Motoron is configured to use.
-  MotoronI2C(uint8_t address = 16) : address(address) {}
+  MotoronI2C(uint8_t address = 16) : address(address), bus(&Wire) {}
 
   /// Configures this object to use the specified I2C bus.
   /// The default bus is Wire, which is typically the first or only I2C bus on
@@ -1782,7 +1845,7 @@ public:
   }
 
 private:
-  TwoWire * bus = &Wire;
+  TwoWire * bus;
   uint8_t address;
 
   void sendCommandCore(uint8_t length, const uint8_t * cmd, bool sendCrc) override
@@ -1842,24 +1905,20 @@ class MotoronSerial : public MotoronBase
 public:
   /// Creates a new MotoronSerial object.
   ///
-  /// The `deviceNumber` argument is optional.  If it is omitted or 255, the
-  /// MotoronSerial object will use the compact protocol.  If it is a number
-  /// between 0 and 127, the MotoronSerial object will use the Pololu protocol,
-  /// and the argument must match the address that the
-  /// Motoron is configured to use.
+  /// The `deviceNumber` argument is optional.  If it is omitted or 0xFFFF, the
+  /// MotoronSerial object will use the compact protocol.  See setDeviceNumber().
   ///
   /// After using this constructor, you must call setPort() to specify which
   /// serial port to use.
-  MotoronSerial(uint8_t deviceNumber = 255) :
-    deviceNumber(deviceNumber)
+  MotoronSerial(uint16_t deviceNumber = 0xFFFF) :
+    port(nullptr), deviceNumber(deviceNumber), serialOptions(0)
   {
   }
 
   /// Alternative constructor that allows you to specify a serial port,
   /// so you do not need to call setPort().
-  MotoronSerial(Stream & port, uint8_t deviceNumber = 255) :
-    port(&port),
-    deviceNumber(deviceNumber)
+  MotoronSerial(Stream & port, uint16_t deviceNumber = 0xFFFF) :
+    port(&port), deviceNumber(deviceNumber), serialOptions(0)
   {
   }
 
@@ -1884,31 +1943,78 @@ public:
 
   /// Configures this object to use the specified device number.
   ///
-  /// If the argument is 255, the
-  /// MotoronSerial object will use the compact protocol.  If it is a number
-  /// between 0 and 127, the MotoronSerial object will use the Pololu protocol,
-  /// and the argument must match the address that the
-  /// Motoron is configured to use.
-  void setDeviceNumber(uint8_t deviceNumber)
+  /// If the argument is 0xFFFF, the MotoronSerial object will use the compact
+  /// protocol.  Otherwise, this object will use the Pololu protocol, and the
+  /// argument must match the device number that the Motoron is configured to
+  /// use.
+  /// By default this object only uses the lower 7 bits of deviceNumber.
+  /// If you call use14BitDeviceNumber() then this object will use the lower
+  /// 14 bits of the device number, and the Motoron must also be configured
+  /// to use 14-bit device numbers.
+  void setDeviceNumber(uint16_t deviceNumber)
   {
     this->deviceNumber = deviceNumber;
   }
 
   /// Gets the serial device number this object is configured to use.
-  uint8_t getDeviceNumber()
+  uint16_t getDeviceNumber()
   {
     return deviceNumber;
   }
 
+  /// Sets the current serial options that this object is configured to use.
+  ///
+  /// The bits in this value are defined by the MOTORON_SERIAL_OPTION_* macros.
+  void getSerialOptions(uint8_t options)
+  {
+    serialOptions = options;
+  }
+
+  /// Returns the current serial options that this object is configured to use.
+  ///
+  /// The bits in this value are defined by the MOTORON_SERIAL_OPTION_* macros.
+  uint8_t getSerialOptions()
+  {
+    return serialOptions;
+  }
+
+  /// Configures this object to work with Motorons that are configured to send
+  /// 7-bit serial responses.
+  void expect7BitResponses()
+  {
+    serialOptions |= (1 << MOTORON_SERIAL_OPTION_7BIT_RESPONSES);
+  }
+
+  /// Configures this object to work with Motorons that are configured to send
+  /// responses in the normal 8-bit format.
+  void expect8BitResponses()
+  {
+    serialOptions &= ~(1 << MOTORON_SERIAL_OPTION_7BIT_RESPONSES);
+  }
+
+  /// Configures this object to send 14-bit device numbers when using the
+  /// Pololu protocol, instead of the defaul 7-bit.
+  void use14BitDeviceNumber()
+  {
+    serialOptions |= (1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER);
+  }
+
+  /// Configures this object to send 7-bit device numbers, which is the default.
+  void use7BitDeviceNumber()
+  {
+    serialOptions &= ~(1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER);
+  }
+
 private:
-  Stream * port = nullptr;
-  uint8_t deviceNumber = 255;
+  Stream * port;
+  uint16_t deviceNumber;
+  uint8_t serialOptions;
 
   void sendCommandCore(uint8_t length, const uint8_t * cmd, bool sendCrc) override
   {
     if (port == nullptr) { lastError = 52; return; }
 
-    if (deviceNumber == 255)
+    if (deviceNumber == 0xFFFF)
     {
       port->write(cmd, length);
       if (sendCrc)
@@ -1918,12 +2024,23 @@ private:
     }
     else
     {
-      uint8_t header[3] = {
-        0xAA,
-        (uint8_t)(deviceNumber & 0x7F),
-        (uint8_t)(cmd[0] & 0x7F),
-      };
-      port->write(header, sizeof(header));
+      uint8_t header[4];
+      if (serialOptions & (1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER))
+      {
+        header[0] = 0xAA;
+        header[1] = deviceNumber & 0x7F;
+        header[2] = deviceNumber >> 7 & 0x7F;
+        header[3] = cmd[0] & 0x7F;
+        port->write(header, 4);
+      }
+      else
+      {
+        header[0] = 0;
+        header[1] = 0xAA;
+        header[2] = deviceNumber & 0x7F;
+        header[3] = cmd[0] & 0x7F;
+        port->write(header + 1, 3);
+      }
       port->write(cmd + 1, length - 1);
       if (sendCrc)
       {
@@ -1943,7 +2060,23 @@ private:
 
   void readResponse(uint8_t length, uint8_t * response) override
   {
-    if (port == nullptr) { lastError = 52; return; }
+    if (port == nullptr)
+    {
+      lastError = 52;
+      memset(response, 0, length);
+      return;
+    }
+
+    bool response7Bit = serialOptions & (1 << MOTORON_SERIAL_OPTION_7BIT_RESPONSES);
+    if (response7Bit && length > 7)
+    {
+      // In 7-bit response mode, the firmware does not support response
+      // payloads longer than 7 bytes.  That seems short enough that it would be
+      // good to signal it with a special error code.
+      lastError = 53;
+      memset(response, 0, length);
+      return;
+    }
 
     port->flush();
 
@@ -1953,6 +2086,16 @@ private:
       lastError = 50;
       memset(response, 0, length);
       return;
+    }
+
+    uint8_t msbs = 0;
+    if (response7Bit)
+    {
+      if (port->readBytes(&msbs, 1) != 1)
+      {
+        lastError = 54;
+        return;
+      }
     }
 
     bool crcEnabled = protocolOptions & (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_RESPONSES);
@@ -1965,12 +2108,28 @@ private:
         return;
       }
 
-      if (crc != calculateCrc(length, response))
+      uint8_t expected_crc = calculateCrc(length, response);
+      if (response7Bit)
+      {
+        expected_crc = calculateCrc(1, &msbs, expected_crc);
+      }
+
+      if (crc != expected_crc)
       {
         lastError = 51;
         return;
       }
     }
+
+    if (response7Bit)
+    {
+      for (uint8_t i = 0; i < length; i++)
+      {
+        if (msbs & 1) { response[i] |= 0x80; }
+        msbs >>= 1;
+      }
+    }
+
     lastError = 0;
   }
 

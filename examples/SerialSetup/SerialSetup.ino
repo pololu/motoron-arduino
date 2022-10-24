@@ -158,7 +158,7 @@ void identifyDevices()
   }
   Serial.println(F("Done."));
 
-  mc.setDeviceNumber(255);
+  mc.setDeviceNumber(0xFFFF);
 }
 
 void useNewBaudRate()
