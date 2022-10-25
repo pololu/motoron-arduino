@@ -279,7 +279,8 @@ public:
   /// with this library for an example of how to use this method.
   void writeEepromDeviceNumber(uint16_t number)
   {
-    writeEeprom16(MOTORON_SETTING_DEVICE_NUMBER, number);
+    writeEeprom(MOTORON_SETTING_DEVICE_NUMBER, number & 0x7F);
+    writeEeprom(MOTORON_SETTING_DEVICE_NUMBER + 1, number >> 7 & 0x7F);
   }
 
   /// Writes to the alternative device number stored in EEPROM, changing it to
