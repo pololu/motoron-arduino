@@ -300,7 +300,22 @@ public:
     writeEeprom(MOTORON_SETTING_ALTERNATIVE_DEVICE_NUMBER + 1, number >> 7 & 0x7F);
   }
 
-  // TODO: writeEepromDisableAlternativeDeviceNumber
+  /// Writes to EEPROM to disable the alternative device number.
+  ///
+  /// This function is only useful on Motorons with a serial interface,
+  /// and only has an effect if JMP1 is shorted to GND.
+  ///
+  /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
+  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// 100,000 erase/write cycles.**
+  ///
+  /// \sa writeEepromAlternativeDeviceNumber()
+  void writeEepromDisableAlternativeDeviceNumber()
+  {
+    writeEeprom(MOTORON_SETTING_ALTERNATIVE_DEVICE_NUMBER, 0);
+    writeEeprom(MOTORON_SETTING_ALTERNATIVE_DEVICE_NUMBER + 1, 0);
+  }
+
 
   /// Writes to the serial options byte stored in EEPROM, changing it to
   /// the specified value.
@@ -1811,7 +1826,7 @@ public:
   ///
   /// The `address` parameter specifies the 7-bit I2C address to use, and it
   /// must match the address that the Motoron is configured to use.
-  MotoronI2C(uint8_t address = 16) : address(address), bus(&Wire) {}
+  MotoronI2C(uint8_t address = 16) : bus(&Wire), address(address) {}
 
   /// Configures this object to use the specified I2C bus.
   /// The default bus is Wire, which is typically the first or only I2C bus on
