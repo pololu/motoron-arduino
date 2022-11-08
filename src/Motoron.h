@@ -1808,12 +1808,12 @@ private:
     readResponse(responseLength, response);
   }
 
-  const uint8_t defaultProtocolOptions =
+  static const uint8_t defaultProtocolOptions =
     (1 << MOTORON_PROTOCOL_OPTION_I2C_GENERAL_CALL) |
     (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS) |
     (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_RESPONSES);
 
-  const uint16_t defaultErrorMask =
+  static const uint16_t defaultErrorMask =
     (1 << MOTORON_STATUS_FLAG_COMMAND_TIMEOUT) |
     (1 << MOTORON_STATUS_FLAG_RESET);
 };
@@ -2021,6 +2021,81 @@ public:
     serialOptions &= ~(1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER);
   }
 
+  /// Sends a Multi-device write command.
+  void multiDeviceWrite(uint16_t startingDeviceNumber, uint16_t deviceCount,
+    uint8_t bytesPerDevice, uint8_t commandByte, const uint8_t * data)
+  {
+    if (port == nullptr) { lastError = 52; return; }
+    if (bytesPerDevice > 15) { lastError = 56; return; }
+
+    bool sendCrc = protocolOptions & (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS);
+
+    uint8_t header[10] = { 0 };
+    if (serialOptions & (1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER))
+    {
+      if (deviceCount > 0x3FFF) { lastError = 55; return; }
+
+      header[4] = startingDeviceNumber & 0x7F;
+      header[5] = startingDeviceNumber >> 7 & 0x7F;
+      header[6] = deviceCount & 0x7F;
+      header[7] = deviceCount >> 7 & 0x7F;
+      header[8] = bytesPerDevice;
+      header[9] = commandByte & 0x7F;
+
+      if (deviceNumber == 0xFFFF)
+      {
+        header[3] = MOTORON_CMD_MULTI_DEVICE_WRITE;
+        port->write(header + 3, 7);
+      }
+      else
+      {
+        header[0] = 0xAA;
+        header[1] = deviceNumber & 0x7F;
+        header[2] = deviceNumber >> 7 & 0x7F;
+        header[3] = MOTORON_CMD_MULTI_DEVICE_WRITE & 0x7F;
+        port->write(header, 10);
+      }
+    }
+    else
+    {
+      if (deviceCount > 0x7F) { lastError = 55; return; }
+
+      header[6] = startingDeviceNumber & 0x7F;
+      header[7] = deviceCount;
+      header[8] = bytesPerDevice;
+      header[9] = commandByte & 0x7F;
+
+      if (deviceNumber == 0xFFFF)
+      {
+        header[5] = MOTORON_CMD_MULTI_DEVICE_WRITE;
+        port->write(header + 5, 5);
+      }
+      else
+      {
+        header[3] = 0xAA;
+        header[4] = deviceNumber & 0x7F;
+        header[5] = MOTORON_CMD_MULTI_DEVICE_WRITE & 0x7F;
+        port->write(header + 3, 7);
+      }
+    }
+
+    uint8_t crc = 0;
+    if (sendCrc) { crc = calculateCrc(sizeof(header), header); }
+
+    if (bytesPerDevice)
+    {
+      while (deviceCount)
+      {
+        port->write(data, bytesPerDevice);
+        if (sendCrc) { crc = calculateCrc(bytesPerDevice, data, crc); }
+        data += bytesPerDevice;
+        deviceCount--;
+      }
+    }
+
+    if (sendCrc) { port->write(crc); }
+  }
+
 private:
   Stream * port;
   uint16_t deviceNumber;
@@ -2148,5 +2223,4 @@ private:
 
     lastError = 0;
   }
-
 };
