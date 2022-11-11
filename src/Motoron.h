@@ -41,9 +41,9 @@ struct MotoronCurrentSenseReading
   uint16_t processed;
 };
 
-/// This is a base class used to represent a connection to a Tic.  This class
-/// provides high-level functions for sending commands to the Tic and reading
-/// data from it.
+/// This is a base class used to represent a connection to a Motoron.  This
+/// class provides high-level functions for sending commands to the Motoron and
+/// reading data from it.
 ///
 /// \sa MotoronSerial, MotoronI2C
 class MotoronBase
@@ -1981,7 +1981,7 @@ public:
   /// Sets the current serial options that this object is configured to use.
   ///
   /// The bits in this value are defined by the MOTORON_SERIAL_OPTION_* macros.
-  void getSerialOptions(uint8_t options)
+  void setSerialOptions(uint8_t options)
   {
     serialOptions = options;
   }
@@ -2021,7 +2021,75 @@ public:
     serialOptions &= ~(1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER);
   }
 
-  /// Sends a Multi-device write command.
+  /// Sends a "Multi-device error check" command but does not read any
+  /// responses.
+  ///
+  /// Note: Before using this, most users should make sure the MotoronSerial
+  /// object is configured to use the compact protocol: construct the object
+  /// without specifying a device number, or call setDeviceNumber with an
+  /// argument of 0xFFFF.
+  void multiDeviceErrorCheckStart(uint16_t startingDeviceNumber, uint16_t deviceCount)
+  {
+    uint8_t cmd[8] = { 0 };
+
+    if (serialOptions & (1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER))
+    {
+      if (deviceCount > 0x3FFF) { lastError = 55; return; }
+
+      cmd[4] = startingDeviceNumber & 0x7F;
+      cmd[5] = startingDeviceNumber >> 7 & 0x7F;
+      cmd[6] = deviceCount & 0x7F;
+      cmd[7] = deviceCount >> 7 & 0x7F;
+
+      if (deviceNumber == 0xFFFF)
+      {
+        cmd[3] = MOTORON_CMD_MULTI_DEVICE_ERROR_CHECK;
+        port->write(cmd + 3, 5);
+      }
+      else
+      {
+        cmd[0] = 0xAA;
+        cmd[1] = deviceNumber & 0x7F;
+        cmd[2] = deviceNumber >> 7 & 0x7F;
+        cmd[3] = MOTORON_CMD_MULTI_DEVICE_ERROR_CHECK & 0x7F;
+        port->write(cmd, 8);
+      }
+    }
+    else
+    {
+      if (deviceCount > 0x7F) { lastError = 55; return; }
+
+      cmd[6] = startingDeviceNumber & 0x7F;
+      cmd[7] = deviceCount;
+
+      if (deviceNumber == 0xFFFF)
+      {
+        cmd[5] = MOTORON_CMD_MULTI_DEVICE_ERROR_CHECK;
+        port->write(cmd + 5, 3);
+      }
+      else
+      {
+        cmd[3] = 0xAA;
+        cmd[4] = deviceNumber & 0x7F;
+        cmd[5] = MOTORON_CMD_MULTI_DEVICE_ERROR_CHECK & 0x7F;
+        port->write(cmd + 3, 5);
+      }
+    }
+
+    if (protocolOptions & (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS))
+    {
+      port->write(calculateCrc(sizeof(cmd), cmd));
+    }
+
+    port->flush();
+  }
+
+  /// Sends a "Multi-device write" command.
+  ///
+  /// Note: Before using this, most users should make sure the MotoronSerial
+  /// object is configured to use the compact protocol: construct the object
+  /// without specifying a device number, or call setDeviceNumber with an
+  /// argument of 0xFFFF.
   void multiDeviceWrite(uint16_t startingDeviceNumber, uint16_t deviceCount,
     uint8_t bytesPerDevice, uint8_t commandByte, const uint8_t * data)
   {
