@@ -144,6 +144,14 @@ public:
     this->protocolOptions = options;
   }
 
+  /// Get the protocol options that this object is currently configured to use.
+  ///
+  /// \sa setProtocolOptions()
+  uint8_t getProtocolOptionsLocally()
+  {
+    return this->protocolOptions;
+  }
+
   /// Enables CRC for commands and responses.  See setProtocolOptions().
   void enableCrc()
   {
@@ -261,7 +269,7 @@ public:
   /// 100,000 erase/write cycles.**
   void writeEeprom16(uint8_t offset, uint16_t value)
   {
-    writeEeprom(offset + 0, value & 0xFF);
+    writeEeprom(offset, value & 0xFF);
     writeEeprom(offset + 1, value >> 8 & 0xFF);
   }
 
@@ -345,6 +353,7 @@ public:
   void writeEepromBaudRate(uint32_t baud)
   {
     if (baud < MOTORON_MIN_BAUD_RATE) { baud = MOTORON_MIN_BAUD_RATE; }
+    if (baud > MOTORON_MAX_BAUD_RATE) { baud = MOTORON_MAX_BAUD_RATE; }
     writeEeprom16(MOTORON_SETTING_BAUD_DIVIDER, (16000000 + (baud >> 1)) / baud);
   }
 
@@ -1989,7 +1998,7 @@ public:
   /// Returns the current serial options that this object is configured to use.
   ///
   /// The bits in this value are defined by the MOTORON_SERIAL_OPTION_* macros.
-  uint8_t getSerialOptions()
+  uint8_t getSerialOptionsLocally()
   {
     return serialOptions;
   }
@@ -2229,7 +2238,7 @@ private:
     bool response7Bit = serialOptions & (1 << MOTORON_SERIAL_OPTION_7BIT_RESPONSES);
     if (response7Bit && length > 7)
     {
-      // In 7-bit response mode, the firmware does not support response
+      // In 7-bit response mode, the Motoron does not support response
       // payloads longer than 7 bytes.  That seems short enough that it would be
       // good to signal it with a special error code.
       lastError = 53;
