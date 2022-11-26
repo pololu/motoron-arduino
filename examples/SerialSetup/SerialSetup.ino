@@ -59,7 +59,6 @@ SoftwareSerial mcSerial(10, 11);
 MotoronSerial mc;
 
 uint32_t useBaudRate = 115200;
-uint16_t nextDeviceNumber = 17;
 
 uint8_t lineSize;
 char lineBuffer[40];
@@ -71,7 +70,7 @@ char lineBuffer[40];
 // For this command to work, the Motoron must be using the same baud rate as
 // the Arduino, and the Motoron's JMP1 line must be low.
 //
-// NUM should be the desired device number for the Motoron, written in decimal.
+// NUM should be the desired device number for the Motoron.
 // If NUM is omitted or equal to "-1", the sketch will automatically pick a
 // device number.
 //
@@ -88,38 +87,55 @@ char lineBuffer[40];
 //   a
 //   a 17
 //   a -1 0
+//   a 0x123 0x456
 void assignAllSerialParameters()
 {
+  static uint16_t lastDeviceNumber = 16;
+
   uint16_t maxDeviceNumber = assign14BitDeviceNumber ? 0x3FFF : 0x7F;
 
-  uint16_t deviceNumber = nextDeviceNumber;
-  uint16_t altDeviceNumber = 0xFFFF;
+  int deviceNumber = 0;
+  int altDeviceNumber = -1;
 
-  // TODO: add a call to sscanf here but see how much program space it takes
-  // TODO: parse the user input to set deviceNumber and altDeviceNumber
+  int r = sscanf(lineBuffer + 1, "%i%i", &deviceNumber, &altDeviceNumber);
+  if (r < 1 || deviceNumber == -1)
+  {
+    // The user did not specify a device number, so pick one.
+    deviceNumber = (lastDeviceNumber + 1) & maxDeviceNumber;
+  }
+  if (r < 2)
+  {
+    // The user did not specify an alternative device number,
+    // so disable the feature.
+    altDeviceNumber = -1;
+  }
+
+  if (deviceNumber < 0 || deviceNumber > maxDeviceNumber ||
+    (altDeviceNumber != -1 && altDeviceNumber > maxDeviceNumber) ||
+    (altDeviceNumber < -1))
+  {
+    Serial.println(F("Invalid device number."));
+    return;
+  }
 
   mc.enableCrc();
   mc.writeEepromDeviceNumber(deviceNumber);
-  if (altDeviceNumber <= maxDeviceNumber)
+  if (altDeviceNumber == -1)
   {
-    mc.writeEepromAlternativeDeviceNumber(altDeviceNumber);
+    mc.writeEepromDisableAlternativeDeviceNumber();
   }
   else
   {
-    mc.writeEepromDisableAlternativeDeviceNumber();
+    mc.writeEepromAlternativeDeviceNumber(altDeviceNumber);
   }
   mc.writeEepromBaudRate(assignBaudRate);
   mc.writeEepromSerialOptions(assignSerialOptions);
   mc.writeEepromResponseDelay(assignResponseDelay);
 
   Serial.print(F("Assigned "));
-  if (assign14BitDeviceNumber)
-  {
-    Serial.print(F(" 14-bit"));
-  }
   Serial.print(F("device number "));
   Serial.print(deviceNumber);
-  if (altDeviceNumber <= maxDeviceNumber)
+  if (altDeviceNumber != 0xFFFF)
   {
     Serial.print(F(" and "));
     Serial.print(altDeviceNumber);
@@ -127,6 +143,14 @@ void assignAllSerialParameters()
   Serial.print(F(", "));
   Serial.print(assignBaudRate);
   Serial.print(F(" baud"));
+  if (assign14BitDeviceNumber)
+  {
+    Serial.print(F(", 14-bit device number"));
+  }
+  else
+  {
+    Serial.print(F(", 7-bit device number"));
+  }
   if (assign7BitResponses)
   {
     Serial.print(F(", 7-bit responses"));
@@ -145,7 +169,7 @@ void assignAllSerialParameters()
   }
   Serial.println('.');
 
-  nextDeviceNumber = (deviceNumber + 1) & maxDeviceNumber;
+  lastDeviceNumber = deviceNumber;
 }
 
 void printCommunicationSettings()
@@ -228,7 +252,8 @@ void printDeviceInfoIfPossible()
 // the current communication settings and the Pololu protocol.  If it finds a
 // Motoron it prints out some information about it.
 //
-// Note: When using 14-bit device numbers, this command will take a long time.  (TODO: how long?)
+// Note: When using 14-bit device numbers, this command will take a lone time
+// (about 4 minutes at 9600 baud).
 void identifyDevices()
 {
   uint16_t maxDeviceNumber =
@@ -266,7 +291,8 @@ void setBaudRate(uint32_t baudRate)
 // Example: b 38600
 void commandSetBaudRate()
 {
-  uint32_t baudRate = strtoul(lineBuffer + 1, NULL, 10);
+  uint32_t baudRate = 0;
+  sscanf(lineBuffer + 1, "%li", &baudRate);
   if (baudRate < MOTORON_MIN_BAUD_RATE || baudRate > MOTORON_MAX_BAUD_RATE)
   {
     Serial.println(F("Invalid baud rate."));
@@ -284,19 +310,16 @@ void commandSetBaudRate()
 // If OPTS is omitted, this command cycles through the four different possible
 // sets of serial options.
 //
-// Otherwise, OPTS should be a decimal number between 0 and 3:
+// Otherwise, OPTS should be a number between 0 and 3:
 //   0 = 8-bit responses, 7-bit device numbers
 //   1 = 7-bit responses, 7-bit device numbers
 //   2 = 8-bit responses, 14-bit device numbers
 //   3 = 7-bit responses, 14-bit device numbers
 void commandSetSerialOptions()
 {
-  uint8_t options;
-  if (lineBuffer[1])
-  {
-    options = strtoul(lineBuffer + 1, NULL, 10);
-  }
-  else
+  unsigned int options = 0;
+  int match = sscanf(lineBuffer + 1, "%i", &options);
+  if (match < 1)
   {
     options = (mc.getSerialOptionsLocally() + 1) & 3;
   }
@@ -380,7 +403,7 @@ void setup()
 {
   Serial.begin(9600);
   mcSerial.begin(useBaudRate);
-  mcSerial.setTimeout(2);
+  mcSerial.setTimeout(5);
   mc.setPort(&mcSerial);
 }
 
