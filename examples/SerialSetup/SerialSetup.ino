@@ -92,7 +92,7 @@ void assignAllSerialParameters()
 {
   static uint16_t lastDeviceNumber = 16;
 
-  uint16_t maxDeviceNumber = assign14BitDeviceNumber ? 0x3FFF : 0x7F;
+  int maxDeviceNumber = assign14BitDeviceNumber ? 0x3FFF : 0x7F;
 
   int deviceNumber = 0;
   int altDeviceNumber = -1;
@@ -111,8 +111,7 @@ void assignAllSerialParameters()
   }
 
   if (deviceNumber < 0 || deviceNumber > maxDeviceNumber ||
-    (altDeviceNumber != -1 && altDeviceNumber > maxDeviceNumber) ||
-    (altDeviceNumber < -1))
+    altDeviceNumber < -1 || altDeviceNumber > maxDeviceNumber)
   {
     Serial.println(F("Invalid device number."));
     return;
@@ -135,7 +134,7 @@ void assignAllSerialParameters()
   Serial.print(F("Assigned "));
   Serial.print(F("device number "));
   Serial.print(deviceNumber);
-  if (altDeviceNumber != 0xFFFF)
+  if (altDeviceNumber != -1)
   {
     Serial.print(F(" and "));
     Serial.print(altDeviceNumber);
