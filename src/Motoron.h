@@ -240,7 +240,7 @@ public:
   /// This command only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
-  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// EEPROM memory of the Motoron's microcontroller is only rated for
   /// 100,000 erase/write cycles.**
   ///
   /// For more information, see the "Write EEPROM" command in the
@@ -265,7 +265,7 @@ public:
   /// This command only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
-  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// EEPROM memory of the Motoron's microcontroller is only rated for
   /// 100,000 erase/write cycles.**
   void writeEeprom16(uint8_t offset, uint16_t value)
   {
@@ -279,12 +279,8 @@ public:
   /// This command only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
-  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// EEPROM memory of the Motoron's microcontroller is only rated for
   /// 100,000 erase/write cycles.**
-  ///
-  /// For more information, see the "Write EEPROM" command in the
-  /// Motoron user's guide.  Also, see the I2CSetAddresses example that comes
-  /// with this library for an example of how to use this method.
   void writeEepromDeviceNumber(uint16_t number)
   {
     writeEeprom(MOTORON_SETTING_DEVICE_NUMBER, number & 0x7F);
@@ -298,7 +294,7 @@ public:
   /// and only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
-  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// EEPROM memory of the Motoron's microcontroller is only rated for
   /// 100,000 erase/write cycles.**
   ///
   /// \sa writeEepromDisableAlternativeDeviceNumber()
@@ -314,7 +310,7 @@ public:
   /// and only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
-  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// EEPROM memory of the Motoron's microcontroller is only rated for
   /// 100,000 erase/write cycles.**
   ///
   /// \sa writeEepromAlternativeDeviceNumber()
@@ -323,7 +319,6 @@ public:
     writeEeprom(MOTORON_SETTING_ALTERNATIVE_DEVICE_NUMBER, 0);
     writeEeprom(MOTORON_SETTING_ALTERNATIVE_DEVICE_NUMBER + 1, 0);
   }
-
 
   /// Writes to the serial options byte stored in EEPROM, changing it to
   /// the specified value.
@@ -334,7 +329,7 @@ public:
   /// and only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
-  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// EEPROM memory of the Motoron's microcontroller is only rated for
   /// 100,000 erase/write cycles.**
   void writeEepromSerialOptions(uint8_t options)
   {
@@ -348,7 +343,7 @@ public:
   /// and only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
-  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// EEPROM memory of the Motoron's microcontroller is only rated for
   /// 100,000 erase/write cycles.**
   void writeEepromBaudRate(uint32_t baud)
   {
@@ -364,7 +359,7 @@ public:
   /// and only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
-  /// EEPROM memory of the Motoron’s microcontroller is only rated for
+  /// EEPROM memory of the Motoron's microcontroller is only rated for
   /// 100,000 erase/write cycles.**
   void writeEepromResponseDelay(uint8_t delay)
   {
@@ -2018,7 +2013,7 @@ public:
   }
 
   /// Configures this object to send 14-bit device numbers when using the
-  /// Pololu protocol, instead of the defaul 7-bit.
+  /// Pololu protocol, instead of the default 7-bit.
   void use14BitDeviceNumber()
   {
     serialOptions |= (1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER);
@@ -2039,55 +2034,27 @@ public:
   /// argument of 0xFFFF.
   void multiDeviceErrorCheckStart(uint16_t startingDeviceNumber, uint16_t deviceCount)
   {
-    uint8_t cmd[8] = { 0 };
-
     if (serialOptions & (1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER))
     {
       if (deviceCount > 0x3FFF) { lastError = 55; return; }
-
-      cmd[4] = startingDeviceNumber & 0x7F;
-      cmd[5] = startingDeviceNumber >> 7 & 0x7F;
-      cmd[6] = deviceCount & 0x7F;
-      cmd[7] = deviceCount >> 7 & 0x7F;
-
-      if (deviceNumber == 0xFFFF)
-      {
-        cmd[3] = MOTORON_CMD_MULTI_DEVICE_ERROR_CHECK;
-        port->write(cmd + 3, 5);
-      }
-      else
-      {
-        cmd[0] = 0xAA;
-        cmd[1] = deviceNumber & 0x7F;
-        cmd[2] = deviceNumber >> 7 & 0x7F;
-        cmd[3] = MOTORON_CMD_MULTI_DEVICE_ERROR_CHECK & 0x7F;
-        port->write(cmd, 8);
-      }
+      uint8_t cmd[] = {
+        MOTORON_CMD_MULTI_DEVICE_ERROR_CHECK,
+        startingDeviceNumber & 0x7F,
+        startingDeviceNumber >> 7 & 0x7F,
+        deviceCount & 0x7F,
+        deviceCount >> 7 & 0x7F,
+      };
+      sendCommand(cmd, sizeof(command));
     }
     else
     {
       if (deviceCount > 0x7F) { lastError = 55; return; }
-
-      cmd[6] = startingDeviceNumber & 0x7F;
-      cmd[7] = deviceCount;
-
-      if (deviceNumber == 0xFFFF)
-      {
-        cmd[5] = MOTORON_CMD_MULTI_DEVICE_ERROR_CHECK;
-        port->write(cmd + 5, 3);
-      }
-      else
-      {
-        cmd[3] = 0xAA;
-        cmd[4] = deviceNumber & 0x7F;
-        cmd[5] = MOTORON_CMD_MULTI_DEVICE_ERROR_CHECK & 0x7F;
-        port->write(cmd + 3, 5);
-      }
-    }
-
-    if (protocolOptions & (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS))
-    {
-      port->write(calculateCrc(sizeof(cmd), cmd));
+      uint8_t cmd[] = {
+        MOTORON_CMD_MULTI_DEVICE_ERROR_CHECK,
+        startingDeviceNumber & 0x7F,
+        deviceCount,
+      };
+      sendCommand(cmd, sizeof(command));
     }
 
     port->flush();
