@@ -1788,18 +1788,16 @@ protected:
   /// See setProtocolOptions.
   uint8_t protocolOptions;
 
-private:
-
+  /// This function is usable by subclasses but is not part of the public API
+  /// and could be changed in future versions.
   void sendCommand(uint8_t length, const uint8_t * cmd)
   {
     bool sendCrc = protocolOptions & (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS);
     sendCommandCore(length, cmd, sendCrc);
   }
 
-  virtual void sendCommandCore(uint8_t length, const uint8_t * cmd, bool sendCrc) = 0;
-  virtual void flushTransmission() = 0;
-  virtual void readResponse(uint8_t length, uint8_t * response) = 0;
-
+  /// This function is usable by subclasses but is not part of the public API
+  /// and could be changed in future versions.
   void sendCommandAndReadResponse(uint8_t cmdLength, const uint8_t * cmd,
     uint8_t responseLength, uint8_t * response)
   {
@@ -1811,6 +1809,12 @@ private:
     }
     readResponse(responseLength, response);
   }
+
+private:
+
+  virtual void sendCommandCore(uint8_t length, const uint8_t * cmd, bool sendCrc) = 0;
+  virtual void flushTransmission() = 0;
+  virtual void readResponse(uint8_t length, uint8_t * response) = 0;
 
   static const uint8_t defaultProtocolOptions =
     (1 << MOTORON_PROTOCOL_OPTION_I2C_GENERAL_CALL) |
@@ -2039,22 +2043,22 @@ public:
       if (deviceCount > 0x3FFF) { lastError = 55; return; }
       uint8_t cmd[] = {
         MOTORON_CMD_MULTI_DEVICE_ERROR_CHECK,
-        startingDeviceNumber & 0x7F,
-        startingDeviceNumber >> 7 & 0x7F,
-        deviceCount & 0x7F,
-        deviceCount >> 7 & 0x7F,
+        (uint8_t)(startingDeviceNumber & 0x7F),
+        (uint8_t)(startingDeviceNumber >> 7 & 0x7F),
+        (uint8_t)(deviceCount & 0x7F),
+        (uint8_t)(deviceCount >> 7 & 0x7F),
       };
-      sendCommand(cmd, sizeof(command));
+      sendCommand(sizeof(cmd), cmd);
     }
     else
     {
       if (deviceCount > 0x7F) { lastError = 55; return; }
       uint8_t cmd[] = {
         MOTORON_CMD_MULTI_DEVICE_ERROR_CHECK,
-        startingDeviceNumber & 0x7F,
-        deviceCount,
+        (uint8_t)(startingDeviceNumber & 0x7F),
+        (uint8_t)deviceCount,
       };
-      sendCommand(cmd, sizeof(command));
+      sendCommand(sizeof(cmd), cmd);
     }
 
     port->flush();
