@@ -1,5 +1,5 @@
-// This example shows how to control the Motoron Motor Controller
-// using Serial if you want to shut down the motors whenever any
+// This example shows how to control a Motoron Motor Controller using its
+// UART serial interface if you want to shut down the motors whenever any
 // problems are detected.
 //
 // The motors will stop until you power cycle or reset your
@@ -48,7 +48,7 @@ const uint16_t errorMask =
     (1 << MOTORON_STATUS_FLAG_COMMAND_TIMEOUT_LATCHED) |
     (1 << MOTORON_STATUS_FLAG_MOTOR_FAULT_LATCHED) |
     (1 << MOTORON_STATUS_FLAG_NO_POWER_LATCHED) |
-    (1 << MOTORON_STATUS_FLAG_SERIAL_ERROR) |
+    (1 << MOTORON_STATUS_FLAG_UART_ERROR) |
     (1 << MOTORON_STATUS_FLAG_RESET) |
     (1 << MOTORON_STATUS_FLAG_COMMAND_TIMEOUT);
 

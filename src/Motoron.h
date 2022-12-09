@@ -290,7 +290,7 @@ public:
   /// Writes to the alternative device number stored in EEPROM, changing it to
   /// the specified value.
   ///
-  /// This function is only useful on Motorons with a serial interface,
+  /// This function is only useful for Motorons with a UART serial interface,
   /// and only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
@@ -306,7 +306,7 @@ public:
 
   /// Writes to EEPROM to disable the alternative device number.
   ///
-  /// This function is only useful on Motorons with a serial interface,
+  /// This function is only useful for Motorons with a UART serial interface,
   /// and only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
@@ -320,26 +320,27 @@ public:
     writeEeprom(MOTORON_SETTING_ALTERNATIVE_DEVICE_NUMBER + 1, 0);
   }
 
-  /// Writes to the serial options byte stored in EEPROM, changing it to
+  /// Writes to the communication options byte stored in EEPROM, changing it to
   /// the specified value.
   ///
-  /// The bits in this byte are defined by the MOTORON_SERIAL_OPTION_* macros.
+  /// The bits in this byte are defined by the MOTORON_COMMUNICATION_OPTION_*
+  /// macros.
   ///
-  /// This function is only useful on Motorons with a serial interface,
+  /// This function is only useful for Motorons with a UART serial interface,
   /// and only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
   /// EEPROM memory of the Motoron's microcontroller is only rated for
   /// 100,000 erase/write cycles.**
-  void writeEepromSerialOptions(uint8_t options)
+  void writeEepromCommunicationOptions(uint8_t options)
   {
-    writeEeprom(MOTORON_SETTING_SERIAL_OPTIONS, options);
+    writeEeprom(MOTORON_SETTING_COMMUNICATION_OPTIONS, options);
   }
 
   /// Writes to the baud rate stored in EEPROM, changing it to the
   /// specified value.
   ///
-  /// This function is only useful on Motorons with a serial interface,
+  /// This function is only useful for Motorons with a UART serial interface,
   /// and only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
@@ -352,10 +353,10 @@ public:
     writeEeprom16(MOTORON_SETTING_BAUD_DIVIDER, (16000000 + (baud >> 1)) / baud);
   }
 
-  /// Writes to the serial response delay setting stored in EEPROM, changing
+  /// Writes to the response delay setting stored in EEPROM, changing
   /// it to the specified value, in units of microseconds.
   ///
-  /// This function is only useful on Motorons with a serial interface,
+  /// This function is only useful for Motorons with a UART serial interface,
   /// and only has an effect if JMP1 is shorted to GND.
   ///
   /// **Warning: Be careful not to write to the EEPROM in a fast loop. The
@@ -544,19 +545,19 @@ public:
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_NO_POWER_LATCHED);
   }
 
-  /// Returns the "Serial error" bit from getStatusFlags().
+  /// Returns the "UART error" bit from getStatusFlags().
   ///
-  /// This bit is only relevant for the Motoron controllers that use
-  /// serial (UART), not I2C.
+  /// This bit is only relevant for the Motoron controllers with a UART serial
+  /// interface.
   ///
   /// For more information, see the "Status flags" variable in the Motoron
   /// user's guide.
   ///
-  /// If this flag is set, you might consider calling
-  /// getSerialErrorFlags() to get details about what serial error happened.
-  bool getSerialErrorFlag()
+  /// If this flag is set, you might consider calling getUARTFaults()
+  /// to get details about what error happened.
+  bool getUARTErrorFlag()
   {
-    return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_SERIAL_ERROR);
+    return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_UART_ERROR);
   }
 
   /// Returns the "Reset" bit from getStatusFlags().
@@ -620,30 +621,29 @@ public:
     return getStatusFlags() & (1 << MOTORON_STATUS_FLAG_MOTOR_DRIVING);
   }
 
-  /// Returns the "Serial error flags" variable.
+  /// Returns the "UART faults" variable.
   ///
-  /// Every time the Motoron sets the "Serial error" bit in the status flags
-  /// register (see getSerialErrorFlag()) it also sets one of the bits in this
+  /// Every time the Motoron sets the "UART error" bit in the status flags
+  /// register (see getUARTErrorFlag()) it also sets one of the bits in this
   /// variable to indicate the cause of the error.
   ///
-  /// The bits in this variable are defined by the MOTORON_SERIAL_ERROR_FLAG_*
+  /// The bits in this variable are defined by the MOTORON_UART_FAULT_*
   /// macros:
   ///
-  /// - MOTORON_SERIAL_ERROR_FLAG_FRAMING
-  /// - MOTORON_SERIAL_ERROR_FLAG_NOISE
-  /// - MOTORON_SERIAL_ERROR_FLAG_HARDWARE_OVERRUN
-  /// - MOTORON_SERIAL_ERROR_FLAG_SOFTWARE_OVERRUN
+  /// - MOTORON_UART_FAULT_FRAMING
+  /// - MOTORON_UART_FAULT_NOISE
+  /// - MOTORON_UART_FAULT_HARDWARE_OVERRUN
+  /// - MOTORON_UART_FAULT_SOFTWARE_OVERRUN
   ///
-  /// This bit is only relevant for the Motoron controllers that use
-  /// serial (UART), not I2C.
+  /// This function is only useful for Motorons with a UART serial interface.
   ///
-  /// For more information, see the "Serial error flags" variable in the Motoron
+  /// For more information, see the "UART faults" variable in the Motoron
   /// user's guide.
   ///
-  /// \sa clearSerialErrorFlags()
-  uint8_t getSerialErrorFlags()
+  /// \sa clearUARTFaults())
+  uint8_t getUARTFaults()
   {
-    return getVar8(0, MOTORON_VAR_SERIAL_ERROR_FLAGS);
+    return getVar8(0, MOTORON_VAR_UART_FAULTS);
   }
 
   /// Reads voltage on the Motoron's VIN pin, in raw device units.
@@ -1096,16 +1096,16 @@ public:
   }
 
   /// Sends a "Set variable" command that clears the specified flags in
-  /// getSerialErrorFlags().
+  /// getUARTFaults().
   ///
   /// For each bit in the flags argument that is 1, this command clears the
-  /// corresponding bit in the "Serial error flags" variable, setting it to 0.
+  /// corresponding bit in the "UART faults" variable, setting it to 0.
   ///
-  /// For more information, see the "Serial error flags" variable in the
+  /// For more information, see the "UART faults" variable in the
   /// Motoron user's guide.
-  void clearSerialErrorFlags(uint8_t flags)
+  void clearUARTFaults(uint8_t flags)
   {
-    setVariable(0, MOTORON_VAR_SERIAL_ERROR_FLAGS, ~(uint16_t)flags & 0x3FFF);
+    setVariable(0, MOTORON_VAR_UART_FAULTS, ~(uint16_t)flags & 0x3FFF);
   }
 
   /// Sets the PWM mode for the specified motor.
@@ -1913,7 +1913,7 @@ private:
   }
 };
 
-/// Represents a serial connection to a Motoron.
+/// Represents a UART serial connection to a Motoron.
 ///
 /// Note that many of the functions in this class have the possibility of
 /// returning long before the command has actually been sent to the Motoron.
@@ -1935,14 +1935,14 @@ public:
   /// After using this constructor, you must call setPort() to specify which
   /// serial port to use.
   MotoronSerial(uint16_t deviceNumber = 0xFFFF) :
-    port(nullptr), deviceNumber(deviceNumber), serialOptions(0)
+    port(nullptr), deviceNumber(deviceNumber), communicationOptions(0)
   {
   }
 
   /// Alternative constructor that allows you to specify a serial port,
   /// so you do not need to call setPort().
   MotoronSerial(Stream & port, uint16_t deviceNumber = 0xFFFF) :
-    port(&port), deviceNumber(deviceNumber), serialOptions(0)
+    port(&port), deviceNumber(deviceNumber), communicationOptions(0)
   {
   }
 
@@ -1980,53 +1980,75 @@ public:
     this->deviceNumber = deviceNumber;
   }
 
-  /// Gets the serial device number this object is configured to use.
+  /// Gets the device number this object is configured to use, or 0xFFFF if
+  /// this object is using the compact protocol.
+  ///
+  /// \sa setDeviceNumber()
   uint16_t getDeviceNumber()
   {
     return deviceNumber;
   }
 
-  /// Sets the current serial options that this object is configured to use.
+  /// Sets the current communication options that this object is configured to
+  /// use.
   ///
-  /// The bits in this value are defined by the MOTORON_SERIAL_OPTION_* macros.
-  void setSerialOptions(uint8_t options)
+  /// The bits in the argument are defined by the MOTORON_COMMUNICATION_OPTION_*
+  /// constants.  The bits that affect the behavior of the object are:
+  ///
+  /// - MOTORON_COMMUNICATION_OPTION_7BIT_RESPONSES
+  /// - MOTORON_COMMUNICATION_OPTION_14BIT_DEVICE_NUMBER
+  ///
+  /// The options you pass to this function must match the configuration in the
+  /// Motoron's EEPROM, or else communication might fail.
+  /// See writeEepromCommunicationOptions().
+  void setCommunicationOptions(uint8_t options)
   {
-    serialOptions = options;
+    communicationOptions = options;
   }
 
-  /// Returns the current serial options that this object is configured to use.
+  /// Returns the current communication options that this object is configured
+  /// to use.
   ///
-  /// The bits in this value are defined by the MOTORON_SERIAL_OPTION_* macros.
-  uint8_t getSerialOptionsLocally()
+  /// \sa setCommunicationOptions()
+  uint8_t getCommunicationOptionsLocally()
   {
-    return serialOptions;
+    return communicationOptions;
   }
 
-  /// Configures this object to work with Motorons that are configured to send
-  /// 7-bit serial responses.
+  /// Configures this object to expect 7-bit UART serial responses from the
+  /// Motoron.
+  ///
+  /// You should only use this function if you have written to the Motoron's
+  /// EEPROM to configure it to use 7-bit responses.
+  /// See writeEepromCommunicationOptions().
   void expect7BitResponses()
   {
-    serialOptions |= (1 << MOTORON_SERIAL_OPTION_7BIT_RESPONSES);
+    communicationOptions |= (1 << MOTORON_COMMUNICATION_OPTION_7BIT_RESPONSES);
   }
 
-  /// Configures this object to work with Motorons that are configured to send
-  /// responses in the normal 8-bit format.
+  /// Configures this object to expect the normal 8-bit UART serial responses
+  /// from the Motoron, which is the default behavior.
   void expect8BitResponses()
   {
-    serialOptions &= ~(1 << MOTORON_SERIAL_OPTION_7BIT_RESPONSES);
+    communicationOptions &= ~(1 << MOTORON_COMMUNICATION_OPTION_7BIT_RESPONSES);
   }
 
   /// Configures this object to send 14-bit device numbers when using the
   /// Pololu protocol, instead of the default 7-bit.
+  ///
+  /// You should only use this function if you have written to the Motoron's
+  /// EEPROM to configure it to use 14-bit device numbers.
+  /// See writeEepromCommunicationOptions().
   void use14BitDeviceNumber()
   {
-    serialOptions |= (1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER);
+    communicationOptions |= (1 << MOTORON_COMMUNICATION_OPTION_14BIT_DEVICE_NUMBER);
   }
 
-  /// Configures this object to send 7-bit device numbers, which is the default.
+  /// Configures this object to send 7-bit device numbers when using the
+  /// Pololu protocol, which is the default behavior.
   void use7BitDeviceNumber()
   {
-    serialOptions &= ~(1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER);
+    communicationOptions &= ~(1 << MOTORON_COMMUNICATION_OPTION_14BIT_DEVICE_NUMBER);
   }
 
   /// Sends a "Multi-device error check" command but does not read any
@@ -2038,7 +2060,7 @@ public:
   /// argument of 0xFFFF.
   void multiDeviceErrorCheckStart(uint16_t startingDeviceNumber, uint16_t deviceCount)
   {
-    if (serialOptions & (1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER))
+    if (communicationOptions & (1 << MOTORON_COMMUNICATION_OPTION_14BIT_DEVICE_NUMBER))
     {
       if (deviceCount > 0x3FFF) { lastError = 55; return; }
       uint8_t cmd[] = {
@@ -2079,7 +2101,7 @@ public:
     bool sendCrc = protocolOptions & (1 << MOTORON_PROTOCOL_OPTION_CRC_FOR_COMMANDS);
 
     uint8_t header[10] = { 0 };
-    if (serialOptions & (1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER))
+    if (communicationOptions & (1 << MOTORON_COMMUNICATION_OPTION_14BIT_DEVICE_NUMBER))
     {
       if (deviceCount > 0x3FFF) { lastError = 55; return; }
 
@@ -2147,7 +2169,7 @@ public:
 private:
   Stream * port;
   uint16_t deviceNumber;
-  uint8_t serialOptions;
+  uint8_t communicationOptions;
 
   void sendCommandCore(uint8_t length, const uint8_t * cmd, bool sendCrc) override
   {
@@ -2164,7 +2186,7 @@ private:
     else
     {
       uint8_t header[4];
-      if (serialOptions & (1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER))
+      if (communicationOptions & (1 << MOTORON_COMMUNICATION_OPTION_14BIT_DEVICE_NUMBER))
       {
         header[0] = 0xAA;
         header[1] = deviceNumber & 0x7F;
@@ -2206,7 +2228,7 @@ private:
       return;
     }
 
-    bool response7Bit = serialOptions & (1 << MOTORON_SERIAL_OPTION_7BIT_RESPONSES);
+    bool response7Bit = communicationOptions & (1 << MOTORON_COMMUNICATION_OPTION_7BIT_RESPONSES);
     if (response7Bit && length > 7)
     {
       // In 7-bit response mode, the Motoron does not support response

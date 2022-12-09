@@ -1,5 +1,5 @@
-// This example shows a simple way to control the
-// Motoron Motor Controller using Serial.
+// This example shows how to control a Motoron Motor Controller using its
+// UART serial interface.
 //
 // The motors will stop but automatically recover if:
 // - Motor power (VIN) is interrupted, or

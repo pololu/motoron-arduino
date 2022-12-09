@@ -1,5 +1,5 @@
-// This example shows a simple way to control multiple Motoron Motor Controllers
-// using serial.
+// This example shows how to control multiple Motoron Motor Controller using
+// their UART serial interfaces.
 //
 // The motors will stop but automatically recover if:
 // - Motor power (VIN) is interrupted, or

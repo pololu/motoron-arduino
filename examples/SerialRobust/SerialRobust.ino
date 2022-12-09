@@ -1,5 +1,5 @@
-// This example shows how to control the Motoron Motor Controller
-// using Serial if you want your system to just keep working,
+// This example shows how to control a Motoron Motor Controller using its
+// UART serial interface if you want your system to just keep working,
 // ignoring or automatically recovering from errors as much as
 // possible.
 //

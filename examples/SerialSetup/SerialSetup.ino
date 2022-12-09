@@ -1,6 +1,6 @@
 // This example sketch provides an interactive utility you can use to set the
-// device number and baud rate for a single serial Motoron controller or
-// multiple serial Motoron controllers.
+// device number, baud rate, and all the other settings in the EEPROM of a
+// a Motoron with a UART serial interface.
 //
 // For this sketch to work the Motoron must be wired properly to the Arduino so
 // it can receive serial commands.  It must also be operating at a known baud
@@ -12,11 +12,11 @@
 //
 // Command          | Summary
 // -----------------|----------------------------------------------------------
-// a [NUM] [ALTNUM] | Assign all serial parameters (JMP1 must be low).
+// a [NUM] [ALTNUM] | Write all settings to EEPROM (JMP1 must be low).
 // r                | Reset devices.
 // i                | Identify devices.
 // b BAUD           | Use a different baud rate to communicate.
-// o [OPTS]         | Use different serial options to communicate.
+// o [OPTS]         | Use different communication options.
 // n                | Use 115200 baud, 8-bit responses, 7-bit device number.
 // j                | Use 9600 baud, 8-bit responses, 7-bit device number.
 // k                | Use the options & baud rate we're assigning to devices.
@@ -40,10 +40,10 @@ const uint8_t assignResponseDelay = 0;
 static_assert(assignBaudRate >= MOTORON_MIN_BAUD_RATE &&
   assignBaudRate <= MOTORON_MAX_BAUD_RATE, "Invalid baud rate.");
 
-const uint8_t assignSerialOptions =
-    (assign7BitResponses << MOTORON_SERIAL_OPTION_7BIT_RESPONSES) |
-    (assign14BitDeviceNumber << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER) |
-    (assignErrIsDE << MOTORON_SERIAL_OPTION_ERR_IS_DE);
+const uint8_t assignCommunicationOptions =
+    (assign7BitResponses << MOTORON_COMMUNICATION_OPTION_7BIT_RESPONSES) |
+    (assign14BitDeviceNumber << MOTORON_COMMUNICATION_OPTION_14BIT_DEVICE_NUMBER) |
+    (assignErrIsDE << MOTORON_COMMUNICATION_OPTION_ERR_IS_DE);
 
 // On boards with a hardware serial port available for use, use
 // that port to communicate with the Motoron. For other boards,
@@ -66,7 +66,7 @@ char lineBuffer[40];
 // Command syntax: a [NUM] [ALTNUM]
 //
 // This command sends a series of "Write EEPROM" commands using the
-// compact protocol to set all the serial parameters on a Motoron.
+// compact protocol to set all the settings in Motoron's EEPROM.
 // For this command to work, the Motoron must be using the same baud rate as
 // the Arduino, and the Motoron's JMP1 line must be low.
 //
@@ -77,18 +77,19 @@ char lineBuffer[40];
 // ALTNUM should be the desired *alternative* device number for the Motoron.
 // If ALTNUM is omitted or equal to "-1", the feature is disabled.
 //
-// The other serial parameters (e.g. assignBaudRate) are set according to the
-// constants above.
+// The other settings are set according to the constants above
+// (e.g. assignBaudRate).
 //
-// This command does not have an immediate affect, but you can use the "r"
-// command to reset the Motoron and make the new settings take effect.
+// Settings writtne to the Motoron's EEPROM do not have an immediate affect,
+// but you can use the "r" command to reset the Motoron and make the new
+// settings take effect.
 //
 // Examples:
 //   a
 //   a 17
 //   a -1 0
 //   a 0x123 0x456
-void assignAllSerialParameters()
+void assignAllSettings()
 {
   static uint16_t lastDeviceNumber = 16;
 
@@ -128,7 +129,7 @@ void assignAllSerialParameters()
     mc.writeEepromAlternativeDeviceNumber(altDeviceNumber);
   }
   mc.writeEepromBaudRate(assignBaudRate);
-  mc.writeEepromSerialOptions(assignSerialOptions);
+  mc.writeEepromCommunicationOptions(assignCommunicationOptions);
   mc.writeEepromResponseDelay(assignResponseDelay);
 
   Serial.print(F("Assigned "));
@@ -175,7 +176,7 @@ void printCommunicationSettings()
 {
   Serial.print(useBaudRate);
   Serial.print(F(" baud"));
-  if (mc.getSerialOptionsLocally() & (1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER))
+  if (mc.getCommunicationOptionsLocally() & (1 << MOTORON_COMMUNICATION_OPTION_14BIT_DEVICE_NUMBER))
   {
     Serial.print(F(", 14-bit device number"));
   }
@@ -183,7 +184,7 @@ void printCommunicationSettings()
   {
     Serial.print(F(", 7-bit device number"));
   }
-  if (mc.getSerialOptionsLocally() & (1 << MOTORON_SERIAL_OPTION_7BIT_RESPONSES))
+  if (mc.getCommunicationOptionsLocally() & (1 << MOTORON_COMMUNICATION_OPTION_7BIT_RESPONSES))
   {
     Serial.print(F(", 7-bit responses"));
   }
@@ -256,7 +257,7 @@ void printDeviceInfoIfPossible()
 void identifyDevices()
 {
   uint16_t maxDeviceNumber =
-    mc.getSerialOptionsLocally() & (1 << MOTORON_SERIAL_OPTION_14BIT_DEVICE_NUMBER)
+    mc.getCommunicationOptionsLocally() & (1 << MOTORON_COMMUNICATION_OPTION_14BIT_DEVICE_NUMBER)
     ? 0x3FFF : 0x7F;
 
   Serial.print(F("Identifying Motoron controllers ("));
@@ -314,15 +315,15 @@ void commandSetBaudRate()
 //   1 = 7-bit responses, 7-bit device numbers
 //   2 = 8-bit responses, 14-bit device numbers
 //   3 = 7-bit responses, 14-bit device numbers
-void commandSetSerialOptions()
+void commandSetCommunicationOptions()
 {
   unsigned int options = 0;
   int match = sscanf(lineBuffer + 1, "%i", &options);
   if (match < 1)
   {
-    options = (mc.getSerialOptionsLocally() + 1) & 3;
+    options = (mc.getCommunicationOptionsLocally() + 1) & 3;
   }
-  mc.setSerialOptions(options);
+  mc.setCommunicationOptions(options);
   printCommunicationSettingsLine();
 }
 
@@ -331,7 +332,7 @@ void processSerialLine()
   switch (lineBuffer[0])
   {
   case 'a':
-    assignAllSerialParameters();
+    assignAllSettings();
     break;
 
   case 'r':
@@ -348,24 +349,24 @@ void processSerialLine()
     break;
 
   case 'o':
-    commandSetSerialOptions();
+    commandSetCommunicationOptions();
     break;
 
   case 'n':
     setBaudRate(115200);
-    mc.setSerialOptions(0);
+    mc.setCommunicationOptions(0);
     printCommunicationSettingsLine();
     break;
 
   case 'j':
     setBaudRate(9600);
-    mc.setSerialOptions(0);
+    mc.setCommunicationOptions(0);
     printCommunicationSettingsLine();
     break;
 
   case 'k':
     setBaudRate(assignBaudRate);
-    mc.setSerialOptions(assignSerialOptions);
+    mc.setCommunicationOptions(assignCommunicationOptions);
     printCommunicationSettingsLine();
     break;
 
