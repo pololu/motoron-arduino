@@ -5,17 +5,16 @@
 ## Summary
 
 This is a library for the Arduino IDE that helps interface with
-[Motoron motor controllers][motoron] using I&sup2;C.
+[Motoron motor controllers][motoron] using I&sup2;C or UART serial.
 
-It supports the following Motoron shields:
+It supports the following Motoron controllers:
 
 - [Motoron M3S256 Triple Motor Controller Shield for Arduino][M3S256]
-- [Motoron M2S Dual High-Power Motor Controllers for Arduino][M2S] (M2S18v20, M2S18v18, M2S24v16, M2S24v14)
-
-It also supports these Motoron controllers:
-
 - [Motoron M3H256 Triple Motor Controller for Raspberry Pi][M3H256]
+- [Motoron M2S Dual High-Power Motor Controllers for Arduino][M2S] (M2S18v20, M2S18v18, M2S24v16, M2S24v14)
 - [Motoron M2H Dual High-Power Motor Controllers for Raspberry Pi][M2H] (M2H18v20, M2H18v18, M2H24v16, M2H24v14)
+- [Motoron M2T256 Dual I&sup2;C Motor Controller][M2T256]
+- [Motoron M2U256 Dual Serial Motor Controller][M2U256]
 
 ## Supported platforms
 
@@ -31,15 +30,48 @@ The Motoron motor controllers can be purchased from Pololu's website.
 Before continuing, careful reading of the [Motoron user's guide][guide]
 is recommended.
 
-### Connections
+### I&sup2;C connections
 
-In order to use this library, you will need to power the Motoron's
-logic and connect the Motoron to your board's I&sup2;C pins.  Plugging the
-Motoron shield into a standard Arduino-compatible board achieves this.
+To control a Motoron with its I&sup2;C interface (SCL and SDA),
+you will need to power the Motoron's logic and connect the Motoron
+to your board's I&sup2;C pins.
+Plugging the Motoron shield into a standard Arduino-compatible board achieves
+this.
 
 If you are not plugging the Motoron in as a shield, you will need to connect
 the GND pins of both boards, connect the SDA pins of both boards, connect
-the SCL pins of both boards, and connect the IOREF pins of both boards.
+the SCL pins of both boards.
+You should also supply power to the Motoron's logic voltage pin (which is named
+VDD, IOREF, or 3V3) by connecting it to the logic voltage supply of your
+controller board, which should be between 3.0&nbsp;V and 5.5&nbsp;V.
+
+### UART serial connections
+
+To control a Motoron with a UART serial interface (RX and TX), you need to
+at least connect your board's TX pin (as defined in the table below) to the
+Motoron's RX pin, and connect your board's ground pin to one of the Motoron's
+GND pins.  If you want to read information from the Motoron, you must also
+connect your board's RX pin to the Motoron's TX pin.
+You should also supply power to the Motoron's logic voltage pin (which is named
+VDD, IOREF, or 3V3) by connecting it to the logic voltage supply of your
+controller board, which should be between 3.0&nbsp;V and 5.5&nbsp;V.
+
+The example sketches for this library use a hardware serial port on your Arduino
+if one is available: if your Arduino environment defines
+`SERIAL_PORT_HARDWARE_OPEN`, the examples will use that port.  The pins for this
+serial port are different depending on which Arduino you are using.
+
+| Microcontroller Board | Hardware serial? | MCU RX pin | MCU TX pin |
+|-----------------------|------------------|------------|------------|
+| A-Star 32U4           |        Yes       |      0     |      1     |
+| A-Star 328PB          |        Yes       |     12     |     11     |
+| Arduino Leonardo      |        Yes       |      0     |      1     |
+| Arduino Micro         |        Yes       |      0     |      1     |
+| Arduino Mega 2560     |        Yes       |     19     |     18     |
+| Arduino Due           |        Yes       |     19**   |     18     |
+| Arduino Uno           |        No        |     10     |     11     |
+| Arduino Yun           |        No        |     10     |     11     |
+
 
 ### Software
 
@@ -73,7 +105,8 @@ the installation instructions above.
 
 ## Classes
 
-The main class provided by this library is MotoronI2C.
+The main classes provided by this library are MotoronI2C and MotoronSerial.
+Each of these is a subclass of MotoronBase.
 
 ## Documentation
 
@@ -85,12 +118,12 @@ If you are already on that page, then click the links in the "Classes" section a
 
 By default, the Motoron will turn off its motors if it has not received a valid
 command in the last 1.5 seconds.  You can change the amount of time it
-takes for the Motoron to time out using MotoronI2C::setCommandTimeoutMilliseconds()
-or you can disable the feature using
-MotoronI2C::disableCommandTimeout().
+takes for the Motoron to time out using MotoronBase::setCommandTimeoutMilliseconds()
+or you can disable the feature using MotoronBase::disableCommandTimeout().
 
 ## Version history
 
+* 1.2.0 (2022-12-16): Add support for the [M2T256] and [M2U256] motorons.
 * 1.1.0 (2022-07-22): Added support for the [M2S] and [M2H] Motorons.
 * 1.0.0 (2022-03-25): Original release.
 
@@ -99,6 +132,8 @@ MotoronI2C::disableCommandTimeout().
 [M3H256]: https://www.pololu.com/category/292
 [M2S]: https://www.pololu.com/category/291
 [M2H]: https://www.pololu.com/category/293
+[M2T256]: https://www.pololu.com/product/5065
+[M2U256]: https://www.pololu.com/product/5067
 [a-star]: https://www.pololu.com/a-star
 [releases]: https://github.com/pololu/motoron-arduino/releases
 [doc]: https://pololu.github.io/motoron-arduino/

@@ -24,7 +24,7 @@
 // This sketch expects each command to be terminated with a line-ending
 // character ('\r' or '\n').
 //
-// For more information, see the "Setting up serial parameters with an Arduino"
+// For more information, see the "Changing serial settings with an Arduino"
 // section of the Motoron user's guide or read the comments below.
 
 #include <Motoron.h>
