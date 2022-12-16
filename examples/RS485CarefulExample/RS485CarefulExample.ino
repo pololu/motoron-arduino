@@ -23,7 +23,17 @@ const uint16_t errorMask =
     (1 << MOTORON_STATUS_FLAG_RESET) |
     (1 << MOTORON_STATUS_FLAG_COMMAND_TIMEOUT);
 
-void setup() {
+uint8_t buffer[deviceCount * motorsPerDevice * 2];
+
+void setSpeedInBuffer(uint8_t motor, int16_t speed)
+{
+  if (motor >= deviceCount * motorsPerDevice) { return; }
+  buffer[motor * 2 + 0] = speed & 0x7F;
+  buffer[motor * 2 + 1] = (speed >> 7) & 0x7F;
+}
+
+void setup()
+{
   mcSerial.begin(115200);
   mcSerial.setTimeout(20);
 
@@ -41,10 +51,10 @@ void setup() {
     mc.setMaxDeceleration(motor, 100);
   }
 
-  // Do some device-specific initializations (optional).
+  // Device-specific initializations (optional).
   mc.setDeviceNumber(startingDeviceNumber);
-  mc.setMaxAcceleration(1, 400);
-  mc.setMaxDeceleration(1, 400);
+  mc.setMaxAcceleration(1, 800);
+  mc.setMaxDeceleration(1, 800);
 
   // Go back to using the compact protocol.
   mc.setDeviceNumber(0xFFFF);
@@ -63,12 +73,21 @@ void loop()
     Serial.println(flags, HEX);
   }
 
-  if (millis() & 2048)
+  // Drive each motor forward briefly and repeat every 4 seconds.
+  for (uint16_t i = 0; i < motorsPerDevice * deviceCount; i++)
   {
-    mc.setSpeed(1, 800);
+    uint16_t phase = (millis() - 512 * i) % 4096;
+    if (phase <= 500)
+    {
+      setSpeedInBuffer(i, 400);
+    }
+    else
+    {
+      setSpeedInBuffer(i, 0);
+    }
   }
-  else
-  {
-    mc.setSpeed(1, -800);
-  }
+
+  // Send the motor speeds.
+  mc.multiDeviceWrite(startingDeviceNumber, deviceCount, motorsPerDevice * 2,
+    MOTORON_CMD_SET_ALL_SPEEDS, buffer);
 }
