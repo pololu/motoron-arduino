@@ -1,89 +1,59 @@
 #include <Motoron.h>
+#include "SerialWithDE.h"
 
 #define DE_PIN 9
 #define RE_PIN 10
 
-class SerialWithDE : public Stream
-{
-public:
-  SerialWithDE(HardwareSerial * serial, uint8_t de_pin = 0xFF, uint8_t re_pin = 0xFF)
-  : hws(serial), de_pin(de_pin), re_pin(re_pin)
-  {
-  }
+uint16_t startingDeviceNumber = 17;
+uint16_t deviceCount = 3;
+uint16_t motorsPerDevice = 2;
 
-  void begin(unsigned long baud) { hws->begin(baud); }
-
-  void txMode()
-  {
-    if (de_pin != 0xFF) { digitalWrite(de_pin, HIGH); }
-    if (re_pin != 0xFF) { digitalWrite(re_pin, HIGH); }
-  }
-
-  void rxMode()
-  {
-    if (de_pin != 0xFF) { digitalWrite(de_pin, LOW); }
-    if (re_pin != 0xFF) { digitalWrite(re_pin, LOW); }
-  }
-
-  int available() override
-  {
-    rxMode();
-    return hws->available();
-  }
-
-  int peek() override
-  {
-    rxMode();
-    return hws->peek();
-  }
-
-  int read() override
-  {
-    rxMode();
-    return hws->read();
-  }
-
-  int availableForWrite() override
-  {
-    return hws->availableForWrite();
-  }
-
-  void flush() override
-  {
-    hws->flush();
-  }
-
-  size_t write(uint8_t b) override
-  {
-    txMode();
-    return hws->write(b);
-  }
-
-  HardwareSerial * hws;
-  uint8_t de_pin, re_pin;
-};
-
-SerialWithDE mcSerial(&SERIAL_PORT_HARDWARE_OPEN, 9, 10);
+SerialWithDE mcSerial(&SERIAL_PORT_HARDWARE_OPEN, DE_PIN, RE_PIN);
 
 MotoronSerial mc;
+
+// Define which status flags the Motoron should treat as errors.
+const uint16_t errorMask =
+    (1 << MOTORON_STATUS_FLAG_PROTOCOL_ERROR) |
+    (1 << MOTORON_STATUS_FLAG_CRC_ERROR) |
+    (1 << MOTORON_STATUS_FLAG_COMMAND_TIMEOUT_LATCHED) |
+    (1 << MOTORON_STATUS_FLAG_MOTOR_FAULT_LATCHED) |
+    (1 << MOTORON_STATUS_FLAG_NO_POWER_LATCHED) |
+    (1 << MOTORON_STATUS_FLAG_UART_ERROR) |
+    (1 << MOTORON_STATUS_FLAG_RESET) |
+    (1 << MOTORON_STATUS_FLAG_COMMAND_TIMEOUT);
 
 void setup() {
   mcSerial.begin(115200);
   mcSerial.setTimeout(20);
 
   mc.setPort(&mcSerial);
-  mc.setDeviceNumber(17);
   mc.expect7BitResponses();
 
-  pinMode(DE_PIN, OUTPUT);
-  digitalWrite(DE_PIN, LOW);
-  pinMode(RE_PIN, OUTPUT);
-  digitalWrite(RE_PIN, LOW);
+  // Reinitialize all the Motorons at once using the compact protocol.
+  mc.reinitialize();
+  mc.clearResetFlag();
+  mc.setErrorMask(errorMask);
+
+  for (uint8_t motor = 1; motor <= motorsPerDevice; motor++)
+  {
+    mc.setMaxAcceleration(motor, 100);
+    mc.setMaxDeceleration(motor, 100);
+  }
+
+  // Do some device-specific initializations (optional).
+  mc.setDeviceNumber(startingDeviceNumber);
+  mc.setMaxAcceleration(1, 400);
+  mc.setMaxDeceleration(1, 400);
+
+  // Go back to using the compact protocol.
+  mc.setDeviceNumber(0xFFFF);
 }
 
 void loop() {
-  while (mcSerial.available()) { mcSerial.read(); }
-  mc.reinitialize();
+
+  delay(100);  // tmphax
+  while (mcSerial.available()) { mcSerial.read(); }  // tmphax
   uint16_t flags = mc.getStatusFlags();
   if (mc.getLastError())
   {
@@ -94,7 +64,14 @@ void loop() {
   {
     Serial.println(flags);
   }
-  mc.clearResetFlag();
-  mc.setSpeedNow(1, 100);
-  delay(250);
+  delay(100);
+
+  if (millis() & 2048)
+  {
+    mc.setSpeed(1, 800);
+  }
+  else
+  {
+    mc.setSpeed(1, -800);
+  }
 }
