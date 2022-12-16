@@ -4,9 +4,9 @@
 #define DE_PIN 9
 #define RE_PIN 10
 
-uint16_t startingDeviceNumber = 17;
-uint16_t deviceCount = 3;
-uint16_t motorsPerDevice = 2;
+const uint16_t startingDeviceNumber = 17;
+const uint16_t deviceCount = 3;
+const uint16_t motorsPerDevice = 2;
 
 SerialWithDE mcSerial(&SERIAL_PORT_HARDWARE_OPEN, DE_PIN, RE_PIN);
 
@@ -50,10 +50,8 @@ void setup() {
   mc.setDeviceNumber(0xFFFF);
 }
 
-void loop() {
-
-  delay(100);  // tmphax
-  while (mcSerial.available()) { mcSerial.read(); }  // tmphax
+void loop()
+{
   uint16_t flags = mc.getStatusFlags();
   if (mc.getLastError())
   {
@@ -62,9 +60,8 @@ void loop() {
   }
   else
   {
-    Serial.println(flags);
+    Serial.println(flags, HEX);
   }
-  delay(100);
 
   if (millis() & 2048)
   {

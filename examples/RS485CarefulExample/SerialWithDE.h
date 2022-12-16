@@ -1,13 +1,25 @@
 #pragma once
 
-// This class wraps HardwareSerial object and allows you to drive one or two
-// pins high whenever the serial object is transmitting in order to control
-// an RS-485 driver and receiver.
+// This class wraps HardwareSerial object and drives one or two configurable
+// pins high whenever the serial object is transmitting.  These pins
+// essentially output the same signal, and you can connect that signal to the
+// the DE (Driver Enable) and RE (Receiver Enable) pins on an RS-485
+// transceiver chip.
 //
-// Ideally this object would switch automatically switch from transmit mode to
-// receive mode when the transmission is done, but it does not because it would
-// be hard to get that working in a portable way.  You must call rxMode(),
-// available(), peek(), or read() to go back into receive mode.
+// This object switchs to transmit mode when you call txMode() or write()
+// (note that write() is called by every function that writes or prints any
+// data to the serial port.)
+//
+// Unforunately, it does not switch to receive mode automatically when the
+// transmission is done.  You must call rxMode() or flush() to do that.
+// This class works well with classes like the MotoronSerial which
+// calls flush() before reading any responses.
+//
+// A future, smarter version of this class might keep track of whether it is
+// in TX mode or RX mode.  Then in the available(), read(), and peek()
+// functions, it should call flush() *if* it is currently in TX mode.
+// However, this implementation is good enough for MotoronSerial, which always
+// calls flush().
 class SerialWithDE : public Stream
 {
 public:
@@ -45,19 +57,16 @@ public:
 
   int available() override
   {
-    rxMode();
     return hws->available();
   }
 
   int peek() override
   {
-    rxMode();
     return hws->peek();
   }
 
   int read() override
   {
-    rxMode();
     return hws->read();
   }
 
@@ -69,7 +78,7 @@ public:
   void flush() override
   {
     hws->flush();
-    // TODO: rxMode() here?
+    rxMode();
   }
 
   size_t write(uint8_t b) override
