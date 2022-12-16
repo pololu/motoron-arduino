@@ -2086,6 +2086,37 @@ public:
     port->flush();
   }
 
+  /// Sends a "Multi-device error check" command and reads the responses.
+  ///
+  /// This function assumes that each addressed Motoron can see the repsonses
+  /// sent by the other Motorons (e.g. they are in a half-duplex RS-485 network).
+  ///
+  /// Returns the number of devices that indicated they have no errors.
+  /// If the return value is less than device count, you can add the return
+  /// value to the startingDeviceNumber to get the device number of the
+  /// first device where the check failed.  This device either did not
+  /// respond or it responded with an indication that it has an error, or an
+  /// unexpected byte was received for some reason.
+  ///
+  /// Note: Before using this, most users should make sure the MotoronSerial
+  /// object is configured to use the compact protocol: construct the object
+  /// without specifying a device number, or set device_number to None.
+  uint16_t multiDeviceErrorCheck(uint16_t startingDeviceNumber, uint16_t deviceCount)
+  {
+    multiDeviceErrorCheckStart(startingDeviceNumber, deviceCount);
+    uint16_t i;
+    for (i = 0; i < deviceCount; i++)
+    {
+      uint8_t response;
+      size_t byteCount = port->readBytes(&response, 1);
+      if (byteCount < 1 || response != MOTORON_ERROR_CHECK_CONTINUE)
+      {
+        break;
+      }
+    }
+    return i;
+  }
+
   /// Sends a "Multi-device write" command.
   ///
   /// Note: Before using this, most users should make sure the MotoronSerial

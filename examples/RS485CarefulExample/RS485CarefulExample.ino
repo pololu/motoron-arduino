@@ -1,14 +1,49 @@
+// This example shows how to control multiple Motoron Motor Controllers in a
+// half-duplex RS-485 network while checking for errors.
+//
+// This is similar to SerialCarefulExample but it uses the
+// "Multi-device write" command to efficiently send speeds to multiple Motorons
+// and it uses the "Multi-device error check" command to efficiently check for
+// errors on multiple Motorons.
+//
+// The error checking code only works if each addressed Motoron can see the
+// repsonses sent by the other Motorons (e.g. they are in a half-duplex RS-485
+// network).
+//
+// This code assumes you have configured the Motorons to send 7-bit responses,
+// which is important because it prevents a Motoron from interpreting a response
+// from another Motoron as a command.
+//
+// You will need to change the following settings in this code to match your
+// hardware configuration: DE_PIN, RE_PIN, startingDeviceNumber, deviceCount,
+// motorsPerDevice.
+
 #include <Motoron.h>
 #include "SerialWithDE.h"
 
+// Define the pins that are used to control the RS-485 driver and receiver.
+// These can be the same pin or they can be 0xFF to disable the feature.
 #define DE_PIN 9
 #define RE_PIN 10
 
+// Define the range of Motoron device numbers to control.
+// (Note that this code does send some Compact protocol commands which will
+// affect all Motorons regardless of their device number.)
 const uint16_t startingDeviceNumber = 17;
 const uint16_t deviceCount = 3;
+
+// Define the number of motor channels per Motoron.
+// It is OK if some of the Motorons in the system have fewer channels than this.
 const uint16_t motorsPerDevice = 2;
 
-SerialWithDE mcSerial(&SERIAL_PORT_HARDWARE_OPEN, DE_PIN, RE_PIN);
+#ifdef SERIAL_PORT_HARDWARE_OPEN
+#define mcSerialCore SERIAL_PORT_HARDWARE_OPEN
+#else
+#include <SoftwareSerial.h>
+SoftwareSerial mcSerialCore(10, 11);
+#endif
+
+SerialWithDE mcSerial(&mcSerialCore, DE_PIN, RE_PIN);
 
 MotoronSerial mc;
 
@@ -39,10 +74,12 @@ void setup()
 
   mc.setPort(&mcSerial);
   mc.expect7BitResponses();
+  // mc.use14BitDeviceNumber();
 
   // Reinitialize all the Motorons at once using the compact protocol.
   mc.reinitialize();
   mc.clearResetFlag();
+  mc.setErrorResponse(MOTORON_ERROR_RESPONSE_COAST);
   mc.setErrorMask(errorMask);
 
   for (uint8_t motor = 1; motor <= motorsPerDevice; motor++)
@@ -60,20 +97,53 @@ void setup()
   mc.setDeviceNumber(0xFFFF);
 }
 
-void loop()
+void handleError(uint16_t deviceNumber)
 {
-  uint16_t flags = mc.getStatusFlags();
-  if (mc.getLastError())
+  // A device has an error or cannot communicate.  Shut down all motors.
+  mc.coastNow();
+
+  // Try to get more detailed info from the device with the problem.
+  mc.setDeviceNumber(deviceNumber);
+
+  uint16_t statusFlags = mc.getStatusFlags();
+  uint8_t error = mc.getLastError();
+  if (error)
   {
-    Serial.print(F("Error: "));
-    Serial.println(mc.getLastError());
+    while (1)
+    {
+      Serial.print(F("Failed to get status flags from device "));
+      Serial.print(mc.getDeviceNumber());
+      Serial.print(F(": error "));
+      Serial.println(error);
+      mc.coastNow();
+      delay(1000);
+    }
   }
   else
   {
-    Serial.println(flags, HEX);
+    while (1)
+    {
+      mc.coastNow();
+      Serial.print(F("Error from device "));
+      Serial.print(mc.getDeviceNumber());
+      Serial.print(F(": status 0x"));
+      Serial.println(statusFlags);
+      delay(1000);
+    }
+  }
+}
+
+void loop()
+{
+  // Check for errors on all the Motorons.
+  uint16_t errorIndex = mc.multiDeviceErrorCheck(startingDeviceNumber, deviceCount);
+  if (errorIndex != deviceCount)
+  {
+    handleError(startingDeviceNumber + errorIndex);
   }
 
-  // Drive each motor forward briefly and repeat every 4 seconds.
+  // Calculate motor speeds that will drive each motor forward briefly and
+  // repeat every 4 seconds.
   for (uint16_t i = 0; i < motorsPerDevice * deviceCount; i++)
   {
     uint16_t phase = (millis() - 512 * i) % 4096;
