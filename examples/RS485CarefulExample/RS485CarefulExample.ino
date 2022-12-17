@@ -37,13 +37,13 @@ const uint16_t deviceCount = 3;
 const uint16_t motorsPerDevice = 2;
 
 #ifdef SERIAL_PORT_HARDWARE_OPEN
-#define mcSerialCore SERIAL_PORT_HARDWARE_OPEN
+#define mcSerial SERIAL_PORT_HARDWARE_OPEN
 #else
 #include <SoftwareSerial.h>
-SoftwareSerial mcSerialCore(10, 11);
+SoftwareSerial mcSerial(10, 11);
 #endif
 
-SerialWithDE mcSerial(&mcSerialCore, DE_PIN, RE_PIN);
+SerialWithDE mcSerialWithDE(&mcSerial, DE_PIN, RE_PIN);
 
 MotoronSerial mc;
 
@@ -69,10 +69,13 @@ void setSpeedInBuffer(uint8_t motor, int16_t speed)
 
 void setup()
 {
+  Serial.begin(9600);
+
   mcSerial.begin(115200);
   mcSerial.setTimeout(20);
+  mcSerialWithDE.begin();
 
-  mc.setPort(&mcSerial);
+  mc.setPort(&mcSerialWithDE);
   mc.expect7BitResponses();
   // mc.use14BitDeviceNumber();
 
@@ -104,9 +107,9 @@ void handleError(uint16_t deviceNumber)
 
   // Try to get more detailed info from the device with the problem.
   mc.setDeviceNumber(deviceNumber);
-
   uint16_t statusFlags = mc.getStatusFlags();
   uint8_t error = mc.getLastError();
+  mc.setDeviceNumber(0xFFFF);
   if (error)
   {
     while (1)

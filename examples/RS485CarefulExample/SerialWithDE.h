@@ -23,12 +23,12 @@
 class SerialWithDE : public Stream
 {
 public:
-  SerialWithDE(HardwareSerial * serial, uint8_t de_pin = 0xFF, uint8_t re_pin = 0xFF)
-  : hws(serial), de_pin(de_pin), re_pin(re_pin)
+  SerialWithDE(Stream * port, uint8_t de_pin = 0xFF, uint8_t re_pin = 0xFF)
+  : port(port), de_pin(de_pin), re_pin(re_pin)
   {
   }
 
-  void begin(unsigned long baud)
+  void begin()
   {
     if (de_pin != 0xFF)
     {
@@ -40,7 +40,6 @@ public:
       pinMode(re_pin, OUTPUT);
       digitalWrite(re_pin, LOW);
     }
-    hws->begin(baud);
   }
 
   void txMode()
@@ -57,36 +56,36 @@ public:
 
   int available() override
   {
-    return hws->available();
+    return port->available();
   }
 
   int peek() override
   {
-    return hws->peek();
+    return port->peek();
   }
 
   int read() override
   {
-    return hws->read();
+    return port->read();
   }
 
-  int availableForWrite() override
+  int availableForWrite()
   {
-    return hws->availableForWrite();
+    return port->availableForWrite();
   }
 
   void flush() override
   {
-    hws->flush();
+    port->flush();
     rxMode();
   }
 
   size_t write(uint8_t b) override
   {
     txMode();
-    return hws->write(b);
+    return port->write(b);
   }
 
-  HardwareSerial * hws;
+  Stream * port;
   uint8_t de_pin, re_pin;
 };
