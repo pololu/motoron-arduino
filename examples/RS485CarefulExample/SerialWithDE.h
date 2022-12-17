@@ -69,11 +69,6 @@ public:
     return port->read();
   }
 
-  int availableForWrite()
-  {
-    return port->availableForWrite();
-  }
-
   void flush() override
   {
     port->flush();
