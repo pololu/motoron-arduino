@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Arduino.h>
+
 // This class wraps HardwareSerial object and drives one or two configurable
 // pins high whenever the serial object is transmitting.  These pins
 // essentially output the same signal, and you can connect that signal to the
@@ -58,6 +60,16 @@ public:
   {
     return port->available();
   }
+
+#if defined(ARDUINO_ARCH_SAM) || defined(ARDUINO_ARCH_SAMD)
+  // availableForWrite is not available in the Stream or Print class in these cores.
+#else
+  // availableForWrite is needed in ArduinoCore-avr and probably other platforms as well.
+  int availableForWrite() override
+  {
+    return port->availableForWrite();
+  }
+#endif
 
   int peek() override
   {

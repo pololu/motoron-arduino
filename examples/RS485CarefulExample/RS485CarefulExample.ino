@@ -115,7 +115,7 @@ void handleError(uint16_t deviceNumber)
     while (1)
     {
       Serial.print(F("Failed to get status flags from device "));
-      Serial.print(mc.getDeviceNumber());
+      Serial.print(deviceNumber);
       Serial.print(F(": error "));
       Serial.println(error);
       mc.coastNow();
@@ -128,7 +128,7 @@ void handleError(uint16_t deviceNumber)
     {
       mc.coastNow();
       Serial.print(F("Error from device "));
-      Serial.print(mc.getDeviceNumber());
+      Serial.print(deviceNumber);
       Serial.print(F(": status 0x"));
       Serial.println(statusFlags);
       delay(1000);
