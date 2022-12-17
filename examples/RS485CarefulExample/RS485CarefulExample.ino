@@ -27,7 +27,7 @@
 #define RE_PIN 10
 
 // Define the range of Motoron device numbers to control.
-// (Note that this code does send some Compact protocol commands which will
+// (Note that this code does send some compact protocol commands which will
 // affect all Motorons regardless of their device number.)
 const uint16_t startingDeviceNumber = 17;
 const uint16_t deviceCount = 3;
