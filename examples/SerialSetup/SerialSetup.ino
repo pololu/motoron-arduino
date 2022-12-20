@@ -68,7 +68,7 @@ char lineBuffer[40];
 // This command sends a series of "Write EEPROM" commands using the
 // compact protocol to set all the settings in Motoron's EEPROM.
 // For this command to work, the Motoron must be using the same baud rate as
-// the Arduino, and the Motoron's JMP1 line must be low.
+// the Arduino and the Motoron's JMP1 line must be low.
 //
 // NUM should be the desired device number for the Motoron.
 // If NUM is omitted or equal to "-1", the sketch will automatically pick a
@@ -80,7 +80,7 @@ char lineBuffer[40];
 // The other settings are set according to the constants above
 // (e.g. assignBaudRate).
 //
-// Settings writtne to the Motoron's EEPROM do not have an immediate affect,
+// Settings written to the Motoron's EEPROM do not have an immediate affect,
 // but you can use the "r" command to reset the Motoron and make the new
 // settings take effect.
 //
@@ -95,26 +95,26 @@ void assignAllSettings()
 
   int maxDeviceNumber = assign14BitDeviceNumber ? 0x3FFF : 0x7F;
 
-  int deviceNumber = 0;
+  int deviceNumber = -1;
   int altDeviceNumber = -1;
 
-  int r = sscanf(lineBuffer + 1, "%i%i", &deviceNumber, &altDeviceNumber);
-  if (r < 1 || deviceNumber == -1)
+  sscanf(lineBuffer + 1, "%i%i", &deviceNumber, &altDeviceNumber);
+
+  if (deviceNumber == -1)
   {
     // The user did not specify a device number, so pick one.
     deviceNumber = (lastDeviceNumber + 1) & maxDeviceNumber;
   }
-  if (r < 2)
-  {
-    // The user did not specify an alternative device number,
-    // so disable the feature.
-    altDeviceNumber = -1;
-  }
 
-  if (deviceNumber < 0 || deviceNumber > maxDeviceNumber ||
-    altDeviceNumber < -1 || altDeviceNumber > maxDeviceNumber)
+  if (deviceNumber < 0 || deviceNumber > maxDeviceNumber)
   {
     Serial.println(F("Invalid device number."));
+    return;
+  }
+
+  if (altDeviceNumber < -1 || altDeviceNumber > maxDeviceNumber)
+  {
+    Serial.println(F("Invalid alternative device number."));
     return;
   }
 
@@ -132,8 +132,7 @@ void assignAllSettings()
   mc.writeEepromCommunicationOptions(assignCommunicationOptions);
   mc.writeEepromResponseDelay(assignResponseDelay);
 
-  Serial.print(F("Assigned "));
-  Serial.print(F("device number "));
+  Serial.print(F("Assigned device number "));
   Serial.print(deviceNumber);
   if (altDeviceNumber != -1)
   {
