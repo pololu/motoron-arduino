@@ -5,10 +5,10 @@
 // For this sketch to work the Motoron must be wired properly to the Arduino so
 // it can receive serial commands.  It must also be operating at a known baud
 // rate, and the baud rate must be one that your Arduino is capable of
-// generating accurately.  (If you are not sure what baud rate your
+// generating accurately.  If you are not sure what baud rate your
 // Motoron is using or whether your Arduino can generate it accurately, you can
 // short JMP1 to GND and then power cycle or reset the Motoron to ensure it
-// uses 9600 baud.)
+// uses 9600 baud.
 //
 // Command          | Summary
 // -----------------|----------------------------------------------------------
@@ -252,7 +252,7 @@ void printDeviceInfoIfPossible()
 // the current communication settings and the Pololu protocol.  If it finds a
 // Motoron it prints out some information about it.
 //
-// Note: When using 14-bit device numbers, this command will take a lone time
+// Note: When using 14-bit device numbers, this command will take a long time
 // (about 4 minutes at 9600 baud).
 void identifyDevices()
 {
