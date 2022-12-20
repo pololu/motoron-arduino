@@ -123,7 +123,7 @@ or you can disable the feature using MotoronBase::disableCommandTimeout().
 
 ## Version history
 
-* 1.2.0 (2022-12-16): Add support for the [M2T256] and [M2U256] motorons.
+* 1.2.0 (2022-12-16): Added support for the [M2T256] and [M2U256] motorons.
 * 1.1.0 (2022-07-22): Added support for the [M2S] and [M2H] Motorons.
 * 1.0.0 (2022-03-25): Original release.
 
