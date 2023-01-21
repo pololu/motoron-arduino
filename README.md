@@ -9,8 +9,8 @@ This is a library for the Arduino IDE that helps interface with
 
 It supports the following Motoron controllers:
 
-- [Motoron M1T256 Dual I&sup2;C Motor Controller][M1T256]
-- [Motoron M1U256 Dual Serial Motor Controller][M1U256]
+- [Motoron M1T256 Single I&sup2;C Motor Controller][M1T256]
+- [Motoron M1U256 Single Serial Motor Controller][M1U256]
 - [Motoron M2T256 Dual I&sup2;C Motor Controller][M2T256]
 - [Motoron M2U256 Dual Serial Motor Controller][M2U256]
 - [Motoron M3S256 Triple Motor Controller Shield for Arduino][M3S256]
