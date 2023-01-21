@@ -1436,6 +1436,9 @@ public:
   /// The speed should be between -800 and 800.  Values outside that range
   /// will be clipped to -800 or 800 by the Motoron firmware.
   ///
+  /// For single-channel Motorons, it is better to use setAllSpeeds() instead
+  /// of this, since it sends one fewer byte.
+  ///
   /// For more information, see the "Set speed" command in the Motoron
   /// user's guide.
   ///
@@ -1453,6 +1456,9 @@ public:
 
   /// Sets the target and current speed of the specified motor, ignoring
   /// any acceleration and deceleration limits.
+  ///
+  /// For single-channel Motorons, it is better to use setAllSpeedsNow() instead
+  /// of this, since it sends one fewer byte.
   ///
   /// For more information, see the "Set speed" command in the Motoron
   /// user's guide.
@@ -1474,6 +1480,9 @@ public:
   /// This command does not immediately cause any change to the motor: it
   /// stores a speed for the specified motor in the Motoron so it can be
   /// used by later commands.
+  ///
+  /// For single-channel Motorons, it is better to use setAllBufferedSpeeds()
+  /// instead of this, since it sends one fewer byte.
   ///
   /// For more information, see the "Set speed" command in the Motoron
   /// user's guide.
@@ -1505,6 +1514,21 @@ public:
   /// user's guide.
   ///
   /// \sa setSpeed(), setAllSpeedsNow(), setAllBufferedSpeeds()
+  void setAllSpeeds(int16_t speed1, int16_t speed2, int16_t speed3)
+  {
+    uint8_t cmd[] = {
+      MOTORON_CMD_SET_ALL_SPEEDS,
+      (uint8_t)(speed1 & 0x7F),
+      (uint8_t)((speed1 >> 7) & 0x7F),
+      (uint8_t)(speed2 & 0x7F),
+      (uint8_t)((speed2 >> 7) & 0x7F),
+      (uint8_t)(speed3 & 0x7F),
+      (uint8_t)((speed3 >> 7) & 0x7F),
+    };
+    sendCommand(sizeof(cmd), cmd);
+  }
+
+  /// An overload of setAllSpeeds() for 2-channel Motorons.
   void setAllSpeeds(int16_t speed1, int16_t speed2)
   {
     uint8_t cmd[] = {
@@ -1517,17 +1541,13 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
-  /// An overload of setAllSpeeds() for Motorons with 3 channels.
-  void setAllSpeeds(int16_t speed1, int16_t speed2, int16_t speed3)
+  /// An overload of setAllSpeeds() for single-channel Motorons.
+  void setAllSpeeds(int16_t speed1)
   {
     uint8_t cmd[] = {
       MOTORON_CMD_SET_ALL_SPEEDS,
       (uint8_t)(speed1 & 0x7F),
       (uint8_t)((speed1 >> 7) & 0x7F),
-      (uint8_t)(speed2 & 0x7F),
-      (uint8_t)((speed2 >> 7) & 0x7F),
-      (uint8_t)(speed3 & 0x7F),
-      (uint8_t)((speed3 >> 7) & 0x7F),
     };
     sendCommand(sizeof(cmd), cmd);
   }
@@ -1545,19 +1565,6 @@ public:
   /// user's guide.
   ///
   /// \sa setSpeed(), setSpeedNow(), setAllSpeeds()
-  void setAllSpeedsNow(int16_t speed1, int16_t speed2)
-  {
-    uint8_t cmd[] = {
-      MOTORON_CMD_SET_ALL_SPEEDS_NOW,
-      (uint8_t)(speed1 & 0x7F),
-      (uint8_t)((speed1 >> 7) & 0x7F),
-      (uint8_t)(speed2 & 0x7F),
-      (uint8_t)((speed2 >> 7) & 0x7F),
-    };
-    sendCommand(sizeof(cmd), cmd);
-  }
-
-  /// An overload of setAllSpeedsNow() for Motorons with 3 channels.
   void setAllSpeedsNow(int16_t speed1, int16_t speed2, int16_t speed3)
   {
     uint8_t cmd[] = {
@@ -1572,6 +1579,30 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
+  /// An overload of setAllSpeedsNow() for 2-channel Motorons.
+  void setAllSpeedsNow(int16_t speed1, int16_t speed2)
+  {
+    uint8_t cmd[] = {
+      MOTORON_CMD_SET_ALL_SPEEDS_NOW,
+      (uint8_t)(speed1 & 0x7F),
+      (uint8_t)((speed1 >> 7) & 0x7F),
+      (uint8_t)(speed2 & 0x7F),
+      (uint8_t)((speed2 >> 7) & 0x7F),
+    };
+    sendCommand(sizeof(cmd), cmd);
+  }
+
+  /// An overload of setAllSpeedsNow() for single-channel Motorons.
+  void setAllSpeedsNow(int16_t speed1)
+  {
+    uint8_t cmd[] = {
+      MOTORON_CMD_SET_ALL_SPEEDS_NOW,
+      (uint8_t)(speed1 & 0x7F),
+      (uint8_t)((speed1 >> 7) & 0x7F),
+    };
+    sendCommand(sizeof(cmd), cmd);
+  }
+
   /// Sets the buffered speeds of all the motors.
   ///
   /// The number of speed arguments you provide to this function must be equal
@@ -1582,11 +1613,30 @@ public:
   /// stores speed for each motor in the Motoron so they can be used by later
   /// commands.
   ///
+  /// This is equivalent to calling setBufferedSpeed() once for each motor,
+  /// but it is more efficient because all of the speeds are sent in the same
+  /// command.
+  ///
   /// For more information, see the "Set all speeds" command in the Motoron
   /// user's guide.
   ///
   /// \sa setSpeed(), setBufferedSpeed(), setAllSpeeds(),
   ///   setAllSpeedsUsingBuffers(), setAllSpeedsNowUsingBuffers()
+  void setAllBufferedSpeeds(int16_t speed1, int16_t speed2, int16_t speed3)
+  {
+    uint8_t cmd[] = {
+      MOTORON_CMD_SET_ALL_BUFFERED_SPEEDS,
+      (uint8_t)(speed1 & 0x7F),
+      (uint8_t)((speed1 >> 7) & 0x7F),
+      (uint8_t)(speed2 & 0x7F),
+      (uint8_t)((speed2 >> 7) & 0x7F),
+      (uint8_t)(speed3 & 0x7F),
+      (uint8_t)((speed3 >> 7) & 0x7F),
+    };
+    sendCommand(sizeof(cmd), cmd);
+  }
+
+  /// An overload of setAllBufferedSpeeds() for 2-channel Motorons.
   void setAllBufferedSpeeds(int16_t speed1, int16_t speed2)
   {
     uint8_t cmd[] = {
@@ -1599,17 +1649,13 @@ public:
     sendCommand(sizeof(cmd), cmd);
   }
 
-  /// An overload of setAllBufferedSpeeds() for Motorons with 3 channels.
-  void setAllBufferedSpeeds(int16_t speed1, int16_t speed2, int16_t speed3)
+  /// An overload of setAllBufferedSpeeds() for 1-channel Motorons.
+  void setAllBufferedSpeeds(int16_t speed1)
   {
     uint8_t cmd[] = {
       MOTORON_CMD_SET_ALL_BUFFERED_SPEEDS,
       (uint8_t)(speed1 & 0x7F),
       (uint8_t)((speed1 >> 7) & 0x7F),
-      (uint8_t)(speed2 & 0x7F),
-      (uint8_t)((speed2 >> 7) & 0x7F),
-      (uint8_t)(speed3 & 0x7F),
-      (uint8_t)((speed3 >> 7) & 0x7F),
     };
     sendCommand(sizeof(cmd), cmd);
   }

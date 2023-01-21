@@ -9,6 +9,8 @@ This is a library for the Arduino IDE that helps interface with
 
 It supports the following Motoron controllers:
 
+- [Motoron M1T256 Dual I&sup2;C Motor Controller][M1T256]
+- [Motoron M1U256 Dual Serial Motor Controller][M1U256]
 - [Motoron M2T256 Dual I&sup2;C Motor Controller][M2T256]
 - [Motoron M2U256 Dual Serial Motor Controller][M2U256]
 - [Motoron M3S256 Triple Motor Controller Shield for Arduino][M3S256]
@@ -123,11 +125,14 @@ or you can disable the feature using MotoronBase::disableCommandTimeout().
 
 ## Version history
 
+* 1.3.0 (2023-01-20): Added support for the [M1T256] and [M1U256] motorons.
 * 1.2.0 (2022-12-16): Added support for the [M2T256] and [M2U256] motorons.
 * 1.1.0 (2022-07-22): Added support for the [M2S] and [M2H] Motorons.
 * 1.0.0 (2022-03-25): Original release.
 
 [motoron]: https://pololu.com/motoron
+[M1T256]: https://www.pololu.com/product/5061
+[M1U256]: https://www.pololu.com/product/5063
 [M2T256]: https://www.pololu.com/product/5065
 [M2U256]: https://www.pololu.com/product/5067
 [M3S256]: https://www.pololu.com/category/290
