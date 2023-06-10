@@ -13,11 +13,6 @@
 // Note: If you want to be even more careful, you might consider
 // reading back all of the settings you care about and verifying
 // they are correct at the end of loop().
-//
-// Note: If your Motoron has fewer than three motor channels,
-// you should remove the commands in loop() and setup() that
-// operate on the motors your controller does not have.
-// Otherwise, those commands will cause a protocol error.
 
 #include <Motoron.h>
 
@@ -75,14 +70,6 @@ void setup()
   // Configure motor 1
   mc.setMaxAcceleration(1, 140);
   mc.setMaxDeceleration(1, 300);
-
-  // Configure motor 2
-  mc.setMaxAcceleration(2, 200);
-  mc.setMaxDeceleration(2, 300);
-
-  // Configure motor 3
-  mc.setMaxAcceleration(3, 80);
-  mc.setMaxDeceleration(3, 300);
 
   // Depending on what was happening before this sketch started,
   // the motors will either be stopped or decelerating.
@@ -162,7 +149,4 @@ void loop()
   {
     mc.setSpeed(1, -800);
   }
-
-  mc.setSpeed(2, 100);
-  mc.setSpeed(3, -100);
 }
