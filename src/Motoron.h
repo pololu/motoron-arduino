@@ -34,6 +34,17 @@ enum class MotoronCurrentSenseType {
   Motoron24v16 = 0b1101,
 };
 
+/// Specifies what type of Motoron is being used, for the purposes of
+/// converting raw VIN voltage readings to millivolts.
+enum class MotoronVinSenseType {
+  /// M*256 Motorons
+  Motoron256 = 0b0000,
+  /// High-power Motorons
+  MotoronHp = 0b0010,
+  /// M*550 Motorons
+  Motoron550 = 0b0011,
+};
+
 struct MotoronCurrentSenseReading
 {
   uint16_t raw;
@@ -664,11 +675,14 @@ public:
   ///
   /// \param referenceMv The reference voltage (IOREF), in millivolts.
   ///   For example, use 3300 for a 3.3 V system or 5000 for a 5 V system.
+  /// \param type Specifies what type of Motoron you are using.
   ///
   /// \sa getVinVoltage()
-  uint32_t getVinVoltageMv(uint16_t referenceMv)
+  uint32_t getVinVoltageMv(uint16_t referenceMv,
+    MotoronVinSenseType type = MotoronVinSenseType::Motoron256)
   {
-    return (uint32_t)getVinVoltage() * referenceMv / 1024 * 1047 / 47;
+    uint16_t scale = (uint8_t)type & 1 ? 459 : 1047;
+    return (uint32_t)getVinVoltage() * referenceMv / 1024 * scale / 47;
   }
 
   /// Reads the "Command timeout" variable and converts it to milliseconds.

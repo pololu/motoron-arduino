@@ -18,8 +18,10 @@
 
 MotoronI2C mc;
 
-// ADC reference voltage: change to 3300 if using a 3.3 V Arduino.
+// Parameters for the VIN voltage measurement.
+// Change referenceMv to 3300 if using a 3.3 V Arduino.
 const uint16_t referenceMv = 5000;
+const auto vinType = MotoronVinSenseType::Motoron256;
 
 // Minimum allowed VIN voltage.  You can raise this to be closer
 // to your power supply's expected voltage.
@@ -119,7 +121,7 @@ void checkForProblems()
   checkCommunicationError(mc.getLastError());
   checkControllerError(status);
 
-  uint32_t voltageMv = mc.getVinVoltageMv(referenceMv);
+  uint32_t voltageMv = mc.getVinVoltageMv(referenceMv, vinType);
   checkCommunicationError(mc.getLastError());
   checkVinVoltage(voltageMv);
 }
