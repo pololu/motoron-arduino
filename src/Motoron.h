@@ -673,8 +673,7 @@ public:
   /// For more information, see the "VIN voltage" variable in the Motoron
   /// user's guide.
   ///
-  /// \param referenceMv The reference voltage (IOREF), in millivolts.
-  ///   For example, use 3300 for a 3.3 V system or 5000 for a 5 V system.
+  /// \param referenceMv The logic voltage of the Motoron, in millivolts.
   /// \param type Specifies what type of Motoron you are using.
   ///
   /// \sa getVinVoltage()
